@@ -5,7 +5,7 @@ RH_ASK backupRadio;
 
 void setup()
 {
-    Serial.begin(9600);    // Debugging only
+    Serial.begin(9600);
     if (!backupRadio.init()) {
          Serial.println("ERROR: backup radio failed");
     }
