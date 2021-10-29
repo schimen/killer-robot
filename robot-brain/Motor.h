@@ -1,106 +1,148 @@
-// (c) Author: Elijas (2015) // github.com/Elijas //
-// v1.0
-//
-// # Description:
-// This is an arduino library that allows the power given to motors increase/decrease gradually (and not instantaneously as with analogWrite() function which this library is meant to replace).
-//
-// # Features:
-// - Lower and upper power limits (e.g. for motors that are able spin only when PWM duty cycle is above some threshold, (i.e. when the value is big enough in analogWrite(pin,value)))
-// - Adjustable rate of power change (by changing step size and/or update delay)
-// - Any number of motors (currently two are supported, modify header to allow for more)
+#ifndef Motor_h
+#define Motor_h
 
-#ifndef MOTOR
-#define MOTOR
 #include <Arduino.h>
-#include "Timer.h"
+#include "SimpleTimer.h"
 
 class Motor {
-    int currStep, targetStep;
-    const int pinForward,
-              pinBackward,
-              lowerLimit,
-              upperLimit,
-              stepSize;
-
     public:
-    Motor(int,int,int,int,int,int,int,Timer*);
-    void set(int);
-    void updatePin();
-    
+        Motor(uint8_t  motorID, // <- i am very angry at this `motorID`
+        uint8_t      pin1, 
+        uint8_t      pin2, 
+        uint8_t      enablePin, 
+        uint16_t     stepDelay, 
+        uint8_t      stepSize, 
+        SimpleTimer* timer);
+
+        void set(int8_t speed);
+        void changeSpeed();
+
+        // i have not found a good for using class members in the callback function, 
+        // which is why i need this abomination
+        static void   updateMotor1();
+        static Motor* ptrMotor1;
+        static void   updateMotor2();
+        static Motor* ptrMotor2;
+
     private:
-    void pinWrite(int);
+        void          writeSpeed(int8_t speed);
+        void          writeDirection(int8_t speed);
 
-    //Necessary to pass to pass updatePin() function as Timer callback function
-    static void updatePin_motor0();
-    static Motor* ptr_motor0;
-
-    static void updatePin_motor1();
-    static Motor* ptr_motor1;
+        uint8_t       _pin1;
+        uint8_t       _pin2;
+        uint8_t       _enablePin;
+        uint16_t      _stepDelay;
+        uint8_t       _stepSize;
+        int8_t        _stepDirection;
+        int8_t        _currentSpeed;
+        SimpleTimer*  _timer;
+        int           _timerID;
+        uint8_t       _motorID; // smh :(
 };
 
-Motor* Motor::ptr_motor0;
-Motor* Motor::ptr_motor1;
+Motor* Motor::ptrMotor1;
+Motor* Motor::ptrMotor2;
 
-Motor::Motor (int motorID, int set_pinForward, int set_pinBackward,
-              int set_lowerLimit, int set_upperLimit, int set_stepSize,
-              int delayOfStepUpdate, Timer* t
-              ) : currStep     (0),
-                  targetStep   (0),
-                  pinForward   (set_pinForward),
-                  pinBackward  (set_pinBackward),
-                  lowerLimit   (set_lowerLimit),
-                  upperLimit   (set_upperLimit),
-                  stepSize     (set_stepSize)
-{
-    if (motorID == 0) {
-        ptr_motor0 = this;
-        t -> every(delayOfStepUpdate, Motor::updatePin_motor0);
+Motor::Motor(uint8_t      motorID,
+    uint8_t      pin1, 
+    uint8_t      pin2, 
+    uint8_t      enablePin, 
+    uint16_t     stepDelay, 
+    uint8_t      stepSize,
+    SimpleTimer* timer) {
+
+    // pin setup
+    pinMode(pin1,      OUTPUT);
+    pinMode(pin2,      OUTPUT);
+    pinMode(enablePin, OUTPUT);
+
+    // private variables
+    _pin1          = pin1;
+    _pin2          = pin2;
+    _enablePin     = enablePin;
+    _stepDelay     = stepDelay;
+    _stepSize      = stepSize;
+    _stepDirection = 1;
+    _currentSpeed  = 0;
+    _timer         = timer;
+    _timerID       = 0;
+
+    // set forward direction and 0 speed at the start
+    writeDirection(1);
+    writeSpeed(0);
+
+    // i hate this, but i still haven't found a better solution
+    if (motorID == 1) {
+        ptrMotor1 = this;
+        _motorID = motorID;
     }
-    else if (motorID == 1) {
-        ptr_motor1 = this;
-        t -> every(delayOfStepUpdate, Motor::updatePin_motor1);
+    else if (motorID == 2) {
+        ptrMotor2 = this;
+        _motorID = motorID;
     }
 }
 
-void Motor::set(int power) {
-    int s = power / stepSize;
-    
-    if (s > 0) {
-        if      (s < lowerLimit) targetStep = 0;
-        else if (s > upperLimit) targetStep = upperLimit;
-        else                     targetStep = s;
+void Motor::set(int8_t speed) {
+    // calculate direction of acceleration
+    if (speed >= _currentSpeed) {
+        _stepDirection = 1;
     }
     else {
-        if      (s > -lowerLimit) targetStep = 0;
-        else if (s < -upperLimit) targetStep = upperLimit;
-        else                      targetStep = s;
-    }      
-}
-
-void Motor::updatePin() {
-    if      (currStep == 0           &&  currStep < targetStep) pinWrite(currStep = lowerLimit);
-    else if (currStep == 0           &&  currStep > targetStep) pinWrite(currStep = -lowerLimit);
-    else if (currStep == lowerLimit  &&  currStep > targetStep) pinWrite(currStep = 0);
-    else if (currStep == -lowerLimit &&  currStep < targetStep) pinWrite(currStep = 0);
-    else if (currStep < targetStep) pinWrite(++currStep);
-    else if (currStep > targetStep) pinWrite(--currStep);
-}
-
-void Motor::pinWrite(int power) {
-    if      (power > 0) analogWrite(pinForward, power*stepSize);
-    else if (power < 0) analogWrite(pinBackward, -power*stepSize);
-    else {
-        analogWrite(pinForward, 0);
-        analogWrite(pinBackward, 0);
+        _stepDirection = -1;
     }
-    //Serial.print("pin "), Serial.print(pinForward), Serial.print(": "), Serial.print(power>0?power*stepSize:0), Serial.print(" "), Serial.print("pin "), Serial.print(pinBackward), Serial.print(": "), Serial.println(power<0?-power*stepSize:0);
+    // number of steps equals: difference in speed divided by step size
+    uint8_t nSteps = abs(speed - _currentSpeed) / _stepSize;
+    // stop already running timers
+    if (_timer -> isEnabled(_timerID)) {
+        _timer -> disable(_timerID);
+        _timer -> deleteTimer(_timerID);
+    }
+    // function to be called `n` times with a set interval
+
+    // start a timer to call `changeSpeed`, `nSteps` times with `_stepDelay` interval
+    // (the motorID thing is a bad solution, but it works)
+    if (_motorID == 1) {
+        _timer -> setTimer(_stepDelay, Motor::updateMotor1, nSteps);
+    }
+    else if (_motorID == 2) {
+        _timer -> setTimer(_stepDelay, Motor::updateMotor2, nSteps);
+    }
 }
 
-void Motor::updatePin_motor0() {
-    Motor::ptr_motor0 -> updatePin();
+void Motor::changeSpeed() {
+    // function to be called `n` times with a set interval
+    writeSpeed(_currentSpeed + (_stepSize*_stepDirection));    
 }
-void Motor::updatePin_motor1() {
-    Motor::ptr_motor1 -> updatePin();
+
+void Motor::writeSpeed(int8_t speed) {
+    // write direction of motors, if direction has changed from last time
+    if (((_currentSpeed >= 0) and (speed < 0)) or ((_currentSpeed < 0) and speed >= 0)) {
+        writeDirection(speed);
+    }
+    // set speed
+    analogWrite(_enablePin, abs(speed)*2);
+    _currentSpeed = speed;
 }
+
+void Motor::writeDirection(int8_t speed) {
+    // write direction of motor
+    if (speed >= 0) {		// forward direction
+        digitalWrite(_pin1, HIGH);
+        digitalWrite(_pin2, LOW);
+    } 
+    else {                  // reverse direction
+        digitalWrite(_pin1, LOW);
+        digitalWrite(_pin2, HIGH);
+    }
+}    
+
+// big oof
+void Motor::updateMotor1() {
+    Motor::ptrMotor1 -> changeSpeed();
+}
+// i need to actually learn c++ at some point
+void Motor::updateMotor2() {
+    Motor::ptrMotor2 -> changeSpeed();
+}
+
 #endif
-
