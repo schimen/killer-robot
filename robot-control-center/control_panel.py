@@ -73,19 +73,33 @@ class ControlOptions(tk.Frame):
         update_button.grid(row=4, column=1)
 
     def update_values(self):
+        def limit_value(minimum, maximum, value):
+            if value <= minimum:
+                return minimum    
+            elif value >= maximum:
+                return maximum
+            return value
+
+        control_panel.focus()
         forward_str = self.forward_entry.get()
         if forward_str.isdigit():
-            ControlOptions.forward_speed = int(forward_str)
+            max_forward = 127; min_forward = 0
+            limited_value = limit_value(min_forward, max_forward, int(forward_str))
+            ControlOptions.forward_speed = limited_value
             print(f'Set forward speed to {ControlOptions.forward_speed}')
         
         backward_str = self.backward_entry.get()
         if backward_str.isdigit():
-            ControlOptions.backward_speed = int(backward_str)
+            max_backward = 127; min_backward = 0
+            limited_value = limit_value(min_backward, max_backward, int(backward_str))
+            ControlOptions.backward_speed = limited_value
             print(f'Set bacward speed to {ControlOptions.backward_speed}')
 
         turnrate_str = self.turnrate_entry.get()
         try:
-            ControlOptions.turn_fraction = float(turnrate_str)
+            min_turnrate = 0.1; max_turnrate = 1;
+            limited_value = limit_value(min_turnrate, max_turnrate, float(turnrate_str))
+            ControlOptions.turn_fraction = limited_value
             print(f'Set turn fraction to {ControlOptions.turn_fraction}')
         except ValueError:
             return
@@ -113,6 +127,7 @@ class DeviceOptions(tk.Frame):
         open_button.grid(row=3, column = 1)
     
     def open_serial(self):
+        control_panel.focus()
         ser.port = self.port_entry.get()
         baudrate = self.baud_entry.get()
         if baudrate.isdigit():
@@ -134,6 +149,8 @@ def process_keys():
                 , 38: 'a'
                 , 39: 's'
                 , 40: 'd'
+                ,  9: 'esc'
+                , 36: 'enter'
                 , 37: 'ctrl'
                 , 50: 'shift'
                 , 64: 'alt'
@@ -141,6 +158,9 @@ def process_keys():
     relevant_keys = set(filter(lambda x: x in key_links, pressed_keys))
     keys = list(map(lambda x: key_links[x], relevant_keys))
     ghostpress_buttons(keys)
+    if 'esc' in keys:
+        control_panel.focus()
+    
     motor_a, motor_b = calculate_speed(keys)
     send_message(motor_a, motor_b)
 
@@ -175,7 +195,16 @@ def calculate_speed(keys):
         else:
             motor_a -= int(turn_fraction*forward_speed)
             motor_b += int(turn_fraction*forward_speed)
-    return motor_a, motor_b
+
+    def limit_motor(value):
+        min_motor = -127; max_motor = 127
+        if value <= min_motor:
+            return min_motor
+        elif value >= max_motor:
+            return max_motor
+        return value
+
+    return limit_motor(motor_a), limit_motor(motor_b)
 
 def send_message(motor_a, motor_b):
     command_a = 10; command_b = 11
