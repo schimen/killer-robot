@@ -7,13 +7,13 @@
 class Motor {
     public:
         Motor(uint8_t  motorID, // <- i am very angry at this `motorID`
-        uint8_t      pin1, 
-        uint8_t      pin2, 
-        uint8_t      enablePin, 
-        uint16_t     stepDelay, 
-        uint8_t      stepSize, 
-        SimpleTimer* timer);
-
+              uint8_t      pin1, 
+              uint8_t      pin2, 
+              uint8_t      enablePin, 
+              uint16_t     stepDelay, 
+              uint8_t      stepSize, 
+              SimpleTimer* timer);
+        
         void set(int8_t speed);
         void changeSpeed();
 
@@ -44,12 +44,12 @@ Motor* Motor::ptrMotor1;
 Motor* Motor::ptrMotor2;
 
 Motor::Motor(uint8_t      motorID,
-    uint8_t      pin1, 
-    uint8_t      pin2, 
-    uint8_t      enablePin, 
-    uint16_t     stepDelay, 
-    uint8_t      stepSize,
-    SimpleTimer* timer) {
+             uint8_t      pin1, 
+             uint8_t      pin2, 
+             uint8_t      enablePin, 
+             uint16_t     stepDelay, 
+             uint8_t      stepSize,
+             SimpleTimer* timer) {
 
     // pin setup
     pinMode(pin1,      OUTPUT);
@@ -101,11 +101,19 @@ void Motor::set(int8_t speed) {
 
     // start a timer to call `changeSpeed`, `nSteps` times with `_stepDelay` interval
     // (the motorID thing is a bad solution, but it works)
-    if (_motorID == 1) {
-        _timer -> setTimer(_stepDelay, Motor::updateMotor1, nSteps);
+    if (nSteps > 0) {
+      if (_motorID == 1) {
+          _timer -> setTimer(_stepDelay, Motor::updateMotor1, nSteps);
+      }
+      else if (_motorID == 2) {
+          _timer -> setTimer(_stepDelay, Motor::updateMotor2, nSteps);
+      }
     }
-    else if (_motorID == 2) {
-        _timer -> setTimer(_stepDelay, Motor::updateMotor2, nSteps);
+    // If the number of steps is 0, there is a bug and timer stays on forever.
+    // My quick fix is to just set the motor to 0 if this happens. 
+    // Seems to be working fine for now at least...
+    else {
+      writeSpeed(0);
     }
 }
 
