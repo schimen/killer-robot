@@ -23,7 +23,7 @@ const uint8_t servoPin = 3;
 
 // acceleration settings
 const uint16_t stepDelay = 50;
-const uint8_t  stepSize  = 10;
+const uint8_t  stepSize  = 50;
 
 // backup radio (433MHz module)
 RH_ASK backupRadio;
@@ -41,7 +41,6 @@ Motor motor2(2, motor2Pin1, motor2Pin2, motor2Enable, stepDelay, stepSize, &time
 void setup() {
   Serial.begin(9600); // communication with bluetooth module
   backupRadio.init(); // backup radio receiver
-  resetBuffer();      // reset the buffer of the radio (this is probably unecessary)
 }
 
 void loop() {
@@ -50,17 +49,11 @@ void loop() {
   timer2.run();
   // check if there are new messages at the backup radio (buffer is full)
   if (backupRadio.recv(receiveBuffer, &bufLen)) {
-    if (validRadioMessage()) { // check if the new message is valid (maybe the buffer should be reset)
-      // save new message in seperate buffer (this is probably also unecessary)
-      char validMessage[bufLen];
-      memcpy(validMessage, receiveBuffer, bufLen);
-      uint8_t command = validMessage[0];
-      int8_t  value   = validMessage[2];
+    if (validRadioMessage()) { // check if the new message is valid
+      uint8_t command = receiveBuffer[0];
+      int     value   = receiveBuffer[2];
       // do something with the values!
-      handleNewMessage(command, value); 
-    }
-    else { // if the message is not valid, delete it. we do not want it...
-      resetBuffer();
+      handleNewMessage(command, value);
     }
   }
   // new message from the bluetooth module
@@ -70,6 +63,7 @@ void loop() {
     int     value   = Serial.parseInt();
     if (Serial.read() == '\n') {
       handleNewMessage(command, value); // do something with it!
+      Serial.print("Command: ");Serial.print(command); Serial.print(", value: "); Serial.println(value);
     }
   }
 }
@@ -105,10 +99,4 @@ bool validRadioMessage() {
   // check if the message is valid message ("<command>,<value>\n")
   return ((receiveBuffer[1] == ',') and (receiveBuffer[3] == '\n'));
   // I should add message as argument here, and not use the global buffer...
-}
-
-void resetBuffer() {
-  // reset backupRadio buffer
-  memset(receiveBuffer, 0, bufLen);
-  // I should add buffer as argument here also...
 }
