@@ -35,6 +35,10 @@ class Motor {
         uint8_t       _stepSize;
         int8_t        _stepDirection;
         int8_t        _currentSpeed;
+        int8_t        _desiredSpeed;
+        uint8_t       _nSteps;
+        uint8_t       _maxSteps;
+        uint8_t       _currentStep;
         SimpleTimer*  _timer;
         int           _timerID;
         uint8_t       _motorID; // smh :(
@@ -64,6 +68,10 @@ Motor::Motor(uint8_t      motorID,
     _stepSize      = stepSize;
     _stepDirection = 1;
     _currentSpeed  = 0;
+    _desiredSpeed  = 0;
+    _nSteps        = 0;
+    _currentStep   = 0;
+    _maxSteps      = (255/_stepSize) + 1;
     _timer         = timer;
     _timerID       = 0;
 
@@ -91,7 +99,7 @@ void Motor::set(int8_t speed) {
         _stepDirection = -1;
     }
     // number of steps equals: difference in speed divided by step size
-    uint8_t nSteps = abs(speed - _currentSpeed) / _stepSize;
+    _nSteps = abs(speed - _currentSpeed) / _stepSize;
     // stop already running timers
     if (_timer -> isEnabled(_timerID)) {
         _timer -> disable(_timerID);
@@ -101,12 +109,14 @@ void Motor::set(int8_t speed) {
 
     // start a timer to call `changeSpeed`, `nSteps` times with `_stepDelay` interval
     // (the motorID thing is a bad solution, but it works)
-    if (nSteps > 0) {
+    if ((_nSteps > 0) and (_nSteps <= _maxSteps)) {
+      _currentStep = 0;
+      _desiredSpeed = speed;
       if (_motorID == 1) {
-          _timer -> setTimer(_stepDelay, Motor::updateMotor1, nSteps);
+          _timer -> setTimer(_stepDelay, Motor::updateMotor1, _nSteps);
       }
       else if (_motorID == 2) {
-          _timer -> setTimer(_stepDelay, Motor::updateMotor2, nSteps);
+          _timer -> setTimer(_stepDelay, Motor::updateMotor2, _nSteps);
       }
     }
     // If the number of steps is 0, there is a bug and timer stays on forever.
@@ -123,13 +133,29 @@ void Motor::changeSpeed() {
 }
 
 void Motor::writeSpeed(int8_t speed) {
+    // check if final speed matches desired speed
+    _currentStep += 1;
+    if ((_currentStep == _nSteps) and (speed != _desiredSpeed)) {
+      speed = _desiredSpeed;
+    }
     // write direction of motors, if direction has changed from last time
-    if (((_currentSpeed >= 0) and (speed < 0)) or ((_currentSpeed < 0) and speed >= 0)) {
+    if (((_currentSpeed >= 0) and (speed < 0)) or ((_currentSpeed < 0) and (speed >= 0))) {
         writeDirection(speed);
     }
+    // convert signed integer speed to pwm
+    uint8_t motorPwm;
+    if (speed != 0) {
+      motorPwm = (abs(speed)*2) + 1;
+      if (motorPwm > 255) {
+        motorPwm = 255;
+      }
+    }
+    else {
+      motorPwm = 0;
+    }
     // set speed
-    analogWrite(_enablePin, abs(speed)*2);
     _currentSpeed = speed;
+    analogWrite(_enablePin, motorPwm);
 }
 
 void Motor::writeDirection(int8_t speed) {
