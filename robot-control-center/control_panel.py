@@ -76,12 +76,22 @@ class ControlOptions(tk.Frame):
         )
         set_shift.grid(row=4, column=0)
 
+        self.reverse = tk.IntVar()
+        self.reverse.set(0)
+        set_reverse = tk.Checkbutton(
+            self, 
+            text = 'Reverse',
+            onvalue = 1, offvalue = 0,
+            variable = self.reverse
+        )
+        set_reverse.grid(row=5, column=0)
+
         update_button = tk.Button(
             self,
             text='Update values',
             command=self.update_values
         )
-        update_button.grid(row=4, column=1)
+        update_button.grid(row=5, column=1)
 
     def update_values(self):
         def limit_value(minimum, maximum, value):
@@ -114,6 +124,11 @@ class ControlOptions(tk.Frame):
             print(f'Turn fraction: {turn_var}')
         except ValueError:
             return
+
+        if self.reverse.get() > 0:
+            print("Robot in reverse")
+            forward_var  = -1*forward_var
+            backward_var = -1*backward_var
 
         if self.set_shift_values.get() > 0: # setting alternate speed:
             print("Setting alternate speed")
