@@ -29,7 +29,7 @@ class Controls(tk.Frame):
 
         Controls.buttons = dict()
         label.grid(row=0,column=1)
-        for key, (i, j) in {'w': (1, 2), 'a': (2, 1), 's': (2, 2), 'd': (2, 3), 'shift': (3, 0)}.items():
+        for key, (i, j) in {'w': (1, 2), 'a': (2, 1), 's': (2, 2), 'd': (2, 3), 'shift': (3, 0), 'space': (3, 4)}.items():
             new_button = tk.Button(
                 self, 
                 text = key,
@@ -76,22 +76,12 @@ class ControlOptions(tk.Frame):
         )
         set_shift.grid(row=4, column=0)
 
-        self.reverse = tk.IntVar()
-        self.reverse.set(0)
-        set_reverse = tk.Checkbutton(
-            self, 
-            text = 'Reverse',
-            onvalue = 1, offvalue = 0,
-            variable = self.reverse
-        )
-        set_reverse.grid(row=5, column=0)
-
         update_button = tk.Button(
             self,
             text='Update values',
             command=self.update_values
         )
-        update_button.grid(row=5, column=1)
+        update_button.grid(row=4, column=1)
 
     def update_values(self):
         def limit_value(minimum, maximum, value):
@@ -124,11 +114,6 @@ class ControlOptions(tk.Frame):
             print(f'Turn fraction: {turn_var}')
         except ValueError:
             return
-
-        if self.reverse.get() > 0:
-            print("Robot in reverse")
-            forward_var  = -1*forward_var
-            backward_var = -1*backward_var
 
         if self.set_shift_values.get() > 0: # setting alternate speed:
             print("Setting alternate speed")
@@ -209,14 +194,18 @@ def process_keys():
                     , 39: 's'
                     , 40: 'd'
                     ,  9: 'esc'
-                    , 50: 'shift' }
+                    , 50: 'shift' 
+                    , 65: 'space'
+                    }
     else : 
         key_links = { 87: 'w'
                     , 65: 'a'
                     , 83: 's'
                     , 68: 'd'
                     , 27: 'esc'
-                    , 16: 'shift' }
+                    , 16: 'shift' 
+                    , 32: 'space'
+                    }
     
     if pressed_keys == process_keys.last_pressed_keys:
         return
@@ -227,8 +216,14 @@ def process_keys():
     ghostpress_buttons(keys)
     if 'esc' in keys:
         control_panel.focus()
-    
-    motor_a, motor_b = calculate_speed(keys)
+
+    if 'space' in keys:
+        motor_b, motor_a = calculate_speed(keys)
+        motor_b = -1*motor_b; motor_a = -1*motor_a
+
+    else:
+        motor_a, motor_b = calculate_speed(keys)
+
     send_message(motor_a, motor_b)
 
 process_keys.last_pressed_keys = set()
