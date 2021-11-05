@@ -1,4 +1,5 @@
 from os import system
+from sys import platform
 import tkinter as tk
 from serial import Serial
 
@@ -28,7 +29,7 @@ class Controls(tk.Frame):
 
         Controls.buttons = dict()
         label.grid(row=0,column=1)
-        for key, (i, j) in {'w': (1, 1), 'a': (2, 0), 's': (2, 1), 'd': (2, 2)}.items():
+        for key, (i, j) in {'w': (1, 2), 'a': (2, 1), 's': (2, 2), 'd': (2, 3), 'shift': (3, 0)}.items():
             new_button = tk.Button(
                 self, 
                 text = key,
@@ -36,9 +37,9 @@ class Controls(tk.Frame):
             new_button.grid(row=i, column=j)
             Controls.buttons[key] = new_button
 
-        tk.Label(self, text='Last message:').grid(row=3, column=0)
+        tk.Label(self, text='Last message:').grid(row=4, column=0)
         Controls.last_message = tk.StringVar()
-        tk.Label(self, textvariable=Controls.last_message).grid(row=3, column=1)
+        tk.Label(self, textvariable=Controls.last_message).grid(row=4, column=1)
 
 
 class ControlOptions(tk.Frame):
@@ -64,6 +65,16 @@ class ControlOptions(tk.Frame):
         self.turnrate_entry = tk.Entry(self)
         self.turnrate_entry.insert(0, str(self.turn_fraction))
         self.turnrate_entry.grid(row=3, column=1)
+        
+        self.set_shift_values = tk.IntVar()
+        self.set_shift_values.set(0)
+        set_shift = tk.Checkbutton(
+            self, 
+            text = 'Set shift values',
+            onvalue = 1, offvalue = 0,
+            variable = self.set_shift_values
+        )
+        set_shift.grid(row=4, column=0)
 
         update_button = tk.Button(
             self,
@@ -85,24 +96,35 @@ class ControlOptions(tk.Frame):
         if forward_str.isdigit():
             max_forward = 127; min_forward = 0
             limited_value = limit_value(min_forward, max_forward, int(forward_str))
-            ControlOptions.forward_speed = limited_value
-            print(f'Set forward speed to {ControlOptions.forward_speed}')
+            forward_var = limited_value
+            print(f'Forward speed: {forward_var}')
         
         backward_str = self.backward_entry.get()
         if backward_str.isdigit():
             max_backward = 127; min_backward = 0
             limited_value = limit_value(min_backward, max_backward, int(backward_str))
-            ControlOptions.backward_speed = limited_value
-            print(f'Set bacward speed to {ControlOptions.backward_speed}')
+            backward_var = limited_value
+            print(f'Bacward speed: {backward_var}')
 
         turnrate_str = self.turnrate_entry.get()
         try:
-            min_turnrate = 0.1; max_turnrate = 1;
+            min_turnrate = 0.1; max_turnrate = 1
             limited_value = limit_value(min_turnrate, max_turnrate, float(turnrate_str))
-            ControlOptions.turn_fraction = limited_value
-            print(f'Set turn fraction to {ControlOptions.turn_fraction}')
+            turn_var = limited_value
+            print(f'Turn fraction: {turn_var}')
         except ValueError:
             return
+
+        if self.set_shift_values.get() > 0: # setting alternate speed:
+            print("Setting alternate speed")
+            ControlOptions.forward_speed_alt = forward_var
+            ControlOptions.backward_speed_alt = backward_var
+            ControlOptions.turn_fraction_alt = turn_var
+        else:
+            print("Setting normal speed")
+            ControlOptions.forward_speed = forward_var 
+            ControlOptions.backward_speed = backward_var
+            ControlOptions.turn_fraction = turn_var
 
 class DeviceOptions(tk.Frame):
     def __init__(self, parent, controller):
@@ -116,6 +138,7 @@ class DeviceOptions(tk.Frame):
 
         baud_label = tk.Label(self, text='Baud rate:')
         self.baud_entry = tk.Entry(self)
+        self.baud_entry.insert(0, '9600')
         baud_label.grid(row=2, column=0)
         self.baud_entry.grid(row=2, column=1)
 
@@ -125,6 +148,17 @@ class DeviceOptions(tk.Frame):
             command = self.open_serial
         )
         open_button.grid(row=3, column = 1)
+
+        self.radio_choice = tk.IntVar()
+        self.radio_choice.set(1)
+        transmitter_checkbutton = tk.Checkbutton(
+            self,
+            text = 'Use backup transmitter',
+            variable = self.radio_choice,
+            onvalue = 0, offvalue = 1,
+            command = self.choose_transmitter
+        )
+        transmitter_checkbutton.grid(row=4,column=1)
     
     def open_serial(self):
         control_panel.focus()
@@ -136,6 +170,15 @@ class DeviceOptions(tk.Frame):
         print(f'Opening serial at:\nport: {ser.port}, baud: {ser.baudrate}')
         ser.open()
 
+    def choose_transmitter(self):
+        radio_choice_command = 9
+        value = self.radio_choice.get()
+        message = f'{radio_choice_command},{value}\n'
+        if ser.is_open:
+            ser.write(bytes(message, 'utf-8'))
+        else:
+            print(message, end='')
+
 def key_press(event):
     pressed_keys.add(event.keycode)
     process_keys()
@@ -145,16 +188,25 @@ def key_release(event):
     process_keys()
 
 def process_keys():
-    key_links = { 25: 'w'
-                , 38: 'a'
-                , 39: 's'
-                , 40: 'd'
-                ,  9: 'esc'
-                , 36: 'enter'
-                , 37: 'ctrl'
-                , 50: 'shift'
-                , 64: 'alt'
-                , 65: 'space' }
+    if platform == 'linux':
+        key_links = { 25: 'w'
+                    , 38: 'a'
+                    , 39: 's'
+                    , 40: 'd'
+                    ,  9: 'esc'
+                    , 50: 'shift' }
+    else : 
+        key_links = { 87: 'w'
+                    , 65: 'a'
+                    , 83: 's'
+                    , 68: 'd'
+                    , 27: 'esc'
+                    , 16: 'shift' }
+    
+    if pressed_keys == process_keys.last_pressed_keys:
+        return
+    
+    process_keys.last_pressed_keys = pressed_keys.copy()
     relevant_keys = set(filter(lambda x: x in key_links, pressed_keys))
     keys = list(map(lambda x: key_links[x], relevant_keys))
     ghostpress_buttons(keys)
@@ -164,6 +216,8 @@ def process_keys():
     motor_a, motor_b = calculate_speed(keys)
     send_message(motor_a, motor_b)
 
+process_keys.last_pressed_keys = set()
+
 def ghostpress_buttons(keys):
     for key, button in Controls.buttons.items():
         if key in keys:
@@ -172,9 +226,15 @@ def ghostpress_buttons(keys):
             button.config(relief='raised')
 
 def calculate_speed(keys):
-    forward_speed  = ControlOptions.forward_speed
-    backward_speed = ControlOptions.backward_speed
-    turn_fraction  = ControlOptions.turn_fraction
+    if 'shift' in keys:
+        forward_speed  = ControlOptions.forward_speed_alt
+        backward_speed = ControlOptions.backward_speed_alt
+        turn_fraction  = ControlOptions.turn_fraction_alt
+    else:
+        forward_speed  = ControlOptions.forward_speed
+        backward_speed = ControlOptions.backward_speed
+        turn_fraction  = ControlOptions.turn_fraction
+
     motor_a = 0
     motor_b = 0
     if 'w' in keys:
@@ -236,23 +296,30 @@ send_message.old_message_a = ''
 send_message.old_message_b = ''
 
 if __name__ == "__main__":
-    # turn off key repeating, global os configuration
-    system('xset r off')
+    # turn off key repeating, global os configuration (on linux)
+    if platform == 'linux':
+        system('xset r off')
+
     # global sets for keeping an eye in the keys (little ugly solution, i know ;( )
-    pressed_keys = set()
+    pressed_keys      = set()
     # create serial object
     ser = Serial()
 
-    ControlOptions.forward_speed = 127
-    ControlOptions.backward_speed = ControlOptions.forward_speed//2
-    ControlOptions.turn_fraction = 0.4
+    ControlOptions.forward_speed  = 127
+    ControlOptions.backward_speed = 127
+    ControlOptions.turn_fraction  = 1
+    ControlOptions.forward_speed_alt  = 127
+    ControlOptions.backward_speed_alt = 127
+    ControlOptions.turn_fraction_alt  = 0.5
 
     # tkinter setup
     control_panel = windows()
     control_panel.bind("<KeyPress>",   key_press)
     control_panel.bind("<KeyRelease>", key_release)
     control_panel.mainloop()
-    # turn on key repeating again
-    system('xset r on')
+    # turn on key repeating again (linux)
+    if platform == 'linux':
+        system('xset r on')
+    
     # close serial
     ser.close()
