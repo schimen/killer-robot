@@ -38,7 +38,7 @@ void loop() {
           // Length of message is fixed at 4 bytes, therefore use number values for command and 
           // value, instead of string. This is fine as long as the values are 8-bit.
           char message[] = {command, ',', limitSpeed(value), '\n'};
-          backupRadio.send((uint8_t *)message, strlen(message));
+          backupRadio.send(message, strlen(message));
           backupRadio.waitPacketSent();
         }
       }

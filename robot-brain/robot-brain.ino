@@ -51,7 +51,7 @@ void loop() {
   if (backupRadio.recv(receiveBuffer, &bufLen)) {
     if (validRadioMessage()) { // check if the new message is valid
       uint8_t command = receiveBuffer[0];
-      int     value   = receiveBuffer[2];
+      int8_t  value   = receiveBuffer[2];
       // do something with the values!
       handleNewMessage(command, value);
     }
@@ -63,7 +63,6 @@ void loop() {
     int     value   = Serial.parseInt();
     if (Serial.read() == '\n') {
       handleNewMessage(command, value); // do something with it!
-      Serial.print("Command: ");Serial.print(command); Serial.print(", value: "); Serial.println(value);
     }
   }
 }
