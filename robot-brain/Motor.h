@@ -109,22 +109,24 @@ void Motor::set(int8_t speed) {
 
     // start a timer to call `changeSpeed`, `nSteps` times with `_stepDelay` interval
     // (the motorID thing is a bad solution, but it works)
-    if ((_nSteps > 0) and (_nSteps <= _maxSteps)) {
-      _currentStep = 0;
-      _desiredSpeed = speed;
-      if (_motorID == 1) {
-          _timer -> setTimer(_stepDelay, Motor::updateMotor1, _nSteps);
-      }
-      else if (_motorID == 2) {
-          _timer -> setTimer(_stepDelay, Motor::updateMotor2, _nSteps);
-      }
+    if ((_nSteps <= 0) or (_nSteps < _maxSteps)) {
+      _nSteps = 1;
     }
+    _currentStep = 0;
+    _desiredSpeed = speed;
+    if (_motorID == 1) {
+        _timer -> setTimer(_stepDelay, Motor::updateMotor1, _nSteps);
+    }
+    else if (_motorID == 2) {
+        _timer -> setTimer(_stepDelay, Motor::updateMotor2, _nSteps);
+    }
+  //}
     // If the number of steps is 0, there is a bug and timer stays on forever.
     // My quick fix is to just set the motor to 0 if this happens. 
     // Seems to be working fine for now at least...
-    else {
-      writeSpeed(0);
-    }
+    //else {
+    //  writeSpeed(0);
+    //}
 }
 
 void Motor::changeSpeed() {

@@ -40,6 +40,7 @@ Motor motor2(2, motor2Pin1, motor2Pin2, motor2Enable, stepDelay, stepSize, &time
 
 void setup() {
   Serial.begin(9600); // communication with bluetooth module
+  Serial.setTimeout(100);
   backupRadio.init(); // backup radio receiver
 }
 
@@ -57,7 +58,7 @@ void loop() {
     }
   }
   // new message from the bluetooth module
-  while (Serial.available() > 0) {
+  if (Serial.available() > 0) {
     // parse message ("<command>,<value>\n")
     uint8_t command = Serial.parseInt();
     int     value   = Serial.parseInt();
