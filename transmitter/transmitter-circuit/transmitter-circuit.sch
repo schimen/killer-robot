@@ -1,0 +1,301 @@
+EESchema Schematic File Version 4
+EELAYER 30 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 1
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L power:+3V3 #PWR?
+U 1 1 624F6A25
+P 2250 1350
+F 0 "#PWR?" H 2250 1200 50  0001 C CNN
+F 1 "+3V3" H 2265 1523 50  0000 C CNN
+F 2 "" H 2250 1350 50  0001 C CNN
+F 3 "" H 2250 1350 50  0001 C CNN
+	1    2250 1350
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR?
+U 1 1 624F7425
+P 2250 1900
+F 0 "#PWR?" H 2250 1650 50  0001 C CNN
+F 1 "GND" H 2255 1727 50  0000 C CNN
+F 2 "" H 2250 1900 50  0001 C CNN
+F 3 "" H 2250 1900 50  0001 C CNN
+	1    2250 1900
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector_Generic:Conn_01x05 HC-12
+U 1 1 624F8772
+P 3450 1650
+F 0 "HC-12" H 3250 2150 50  0000 L CNN
+F 1 "Conn_01x05" H 3100 2050 50  0000 L CNN
+F 2 "" H 3450 1650 50  0001 C CNN
+F 3 "~" H 3450 1650 50  0001 C CNN
+	1    3450 1650
+	1    0    0    -1  
+$EndComp
+NoConn ~ 2500 1900
+Wire Wire Line
+	2250 1500 2250 1350
+Text GLabel 3250 1650 0    50   Input ~ 0
+TX3
+Text GLabel 3250 1750 0    50   Input ~ 0
+RX3
+Text GLabel 2500 1700 0    50   Input ~ 0
+RX4
+Text GLabel 2500 1800 0    50   Input ~ 0
+TX4
+Wire Wire Line
+	2250 1600 2500 1600
+Wire Wire Line
+	2250 1500 2500 1500
+Wire Wire Line
+	3250 1550 3000 1550
+Wire Wire Line
+	3000 1550 3000 1900
+Wire Wire Line
+	3250 1450 3000 1450
+Wire Wire Line
+	3000 1450 3000 1350
+$Comp
+L power:+3V3 #PWR?
+U 1 1 624FF457
+P 3000 1350
+F 0 "#PWR?" H 3000 1200 50  0001 C CNN
+F 1 "+3V3" H 3015 1523 50  0000 C CNN
+F 2 "" H 3000 1350 50  0001 C CNN
+F 3 "" H 3000 1350 50  0001 C CNN
+	1    3000 1350
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR?
+U 1 1 624FF67B
+P 3000 1900
+F 0 "#PWR?" H 3000 1650 50  0001 C CNN
+F 1 "GND" H 3005 1727 50  0000 C CNN
+F 2 "" H 3000 1900 50  0001 C CNN
+F 3 "" H 3000 1900 50  0001 C CNN
+	1    3000 1900
+	1    0    0    -1  
+$EndComp
+Text GLabel 3250 1850 0    50   Input ~ 0
+D13
+Text GLabel 2500 1400 0    50   Input ~ 0
+D18
+Wire Wire Line
+	2250 1900 2250 1600
+$Comp
+L Device:LED D3
+U 1 1 62505B46
+P 1800 1600
+F 0 "D3" V 1750 1450 50  0000 C CNN
+F 1 "LED" V 1850 1450 50  0000 C CNN
+F 2 "" H 1800 1600 50  0001 C CNN
+F 3 "~" H 1800 1600 50  0001 C CNN
+	1    1800 1600
+	0    -1   -1   0   
+$EndComp
+$Comp
+L Device:LED D2
+U 1 1 62506AD8
+P 1450 1600
+F 0 "D2" V 1400 1450 50  0000 C CNN
+F 1 "LED" V 1500 1450 50  0000 C CNN
+F 2 "" H 1450 1600 50  0001 C CNN
+F 3 "~" H 1450 1600 50  0001 C CNN
+	1    1450 1600
+	0    -1   -1   0   
+$EndComp
+$Comp
+L Device:R R2
+U 1 1 6250A92A
+P 1450 1300
+F 0 "R2" H 1520 1346 50  0000 L CNN
+F 1 "47" H 1520 1255 50  0000 L CNN
+F 2 "" V 1380 1300 50  0001 C CNN
+F 3 "~" H 1450 1300 50  0001 C CNN
+	1    1450 1300
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R R3
+U 1 1 6250ADF2
+P 1800 1300
+F 0 "R3" H 1870 1346 50  0000 L CNN
+F 1 "75" H 1870 1255 50  0000 L CNN
+F 2 "" V 1730 1300 50  0001 C CNN
+F 3 "~" H 1800 1300 50  0001 C CNN
+	1    1800 1300
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR?
+U 1 1 6250B39B
+P 1450 1900
+F 0 "#PWR?" H 1450 1650 50  0001 C CNN
+F 1 "GND" H 1455 1727 50  0000 C CNN
+F 2 "" H 1450 1900 50  0001 C CNN
+F 3 "" H 1450 1900 50  0001 C CNN
+	1    1450 1900
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1450 1750 1450 1900
+Wire Wire Line
+	1800 1900 1800 1750
+Text GLabel 1450 1150 1    50   Input ~ 0
+D22
+Text GLabel 1800 1150 1    50   Input ~ 0
+D23
+Wire Notes Line
+	900  900  900  2150
+Wire Notes Line
+	2050 2150 2050 900 
+Wire Notes Line
+	2100 1050 2100 2150
+$Comp
+L Connector_Generic:Conn_01x06 HC-05
+U 1 1 624F8B0A
+P 2700 1600
+F 0 "HC-05" H 2500 2050 50  0000 L CNN
+F 1 "Conn_01x06" H 2350 1950 50  0000 L CNN
+F 2 "" H 2700 1600 50  0001 C CNN
+F 3 "~" H 2700 1600 50  0001 C CNN
+	1    2700 1600
+	1    0    0    -1  
+$EndComp
+Wire Notes Line
+	3600 1050 3600 2150
+Wire Notes Line
+	2100 2150 3600 2150
+Wire Notes Line
+	2100 1050 3600 1050
+Text Notes 2150 1000 0    50   ~ 0
+Radio
+Text Notes 900  850  0    50   ~ 0
+Status leds
+$Comp
+L Device:LED D1
+U 1 1 6252FCA1
+P 1100 1600
+F 0 "D1" V 1050 1450 50  0000 C CNN
+F 1 "LED" V 1150 1450 50  0000 C CNN
+F 2 "" H 1100 1600 50  0001 C CNN
+F 3 "~" H 1100 1600 50  0001 C CNN
+	1    1100 1600
+	0    -1   -1   0   
+$EndComp
+$Comp
+L Device:R R1
+U 1 1 6252FCA7
+P 1100 1300
+F 0 "R1" H 1170 1346 50  0000 L CNN
+F 1 "36" H 1170 1255 50  0000 L CNN
+F 2 "" V 1030 1300 50  0001 C CNN
+F 3 "~" H 1100 1300 50  0001 C CNN
+	1    1100 1300
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1100 1750 1100 1900
+Text GLabel 1100 1150 1    50   Input ~ 0
+D19
+Wire Wire Line
+	1100 1900 1450 1900
+Connection ~ 1450 1900
+Wire Wire Line
+	1450 1900 1800 1900
+Wire Notes Line
+	900  900  2050 900 
+Wire Notes Line
+	900  2150 2050 2150
+Text Notes 1750 1250 3    50   ~ 0
+Red
+Text Notes 1050 1400 1    50   ~ 0
+Green
+Text Notes 1400 1400 1    50   ~ 0
+Yellow
+Text Notes 4050 1250 2    50   ~ 0
+Teensy 4.0
+$Comp
+L Connector_Generic:Conn_01x14 Teensy_top
+U 1 1 62511C6D
+P 4450 1950
+F 0 "Teensy_top" V 4550 1400 50  0000 C CNN
+F 1 "Conn_01x14" V 4550 2350 50  0000 C CNN
+F 2 "" H 4450 1950 50  0001 C CNN
+F 3 "~" H 4450 1950 50  0001 C CNN
+	1    4450 1950
+	0    1    1    0   
+$EndComp
+NoConn ~ 3750 1750
+$Comp
+L power:GND #PWR?
+U 1 1 62513EA2
+P 3750 1450
+F 0 "#PWR?" H 3750 1200 50  0001 C CNN
+F 1 "GND" H 3755 1277 50  0000 C CNN
+F 2 "" H 3750 1450 50  0001 C CNN
+F 3 "" H 3750 1450 50  0001 C CNN
+	1    3750 1450
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3850 1750 3850 1450
+Wire Wire Line
+	3850 1450 3750 1450
+$Comp
+L power:+3.3V #PWR?
+U 1 1 6251574D
+P 3950 1550
+F 0 "#PWR?" H 3950 1400 50  0001 C CNN
+F 1 "+3.3V" H 3965 1723 50  0000 C CNN
+F 2 "" H 3950 1550 50  0001 C CNN
+F 3 "" H 3950 1550 50  0001 C CNN
+	1    3950 1550
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3950 1550 3950 1750
+Text GLabel 4050 1750 1    50   Input ~ 0
+D23
+Text GLabel 4150 1750 1    50   Input ~ 0
+D22
+NoConn ~ 4250 1750
+NoConn ~ 4350 1750
+Text GLabel 4450 1750 1    50   Input ~ 0
+D19
+Text GLabel 4550 1750 1    50   Input ~ 0
+D18
+Text GLabel 4650 1750 1    50   Input ~ 0
+TX4
+Text GLabel 4750 1750 1    50   Input ~ 0
+RX4
+Text GLabel 4850 1750 1    50   Input ~ 0
+TX3
+Text GLabel 4950 1750 1    50   Input ~ 0
+RX3
+Text GLabel 5050 1750 1    50   Input ~ 0
+D13
+Wire Notes Line
+	5150 2150 3650 2150
+Wire Notes Line
+	3650 2150 3650 1300
+Wire Notes Line
+	3650 1300 5150 1300
+Wire Notes Line
+	5150 1300 5150 2150
+$EndSCHEMATC
