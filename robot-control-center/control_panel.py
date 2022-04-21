@@ -12,6 +12,25 @@ from queue import Queue
 import threading
 import tkinter as tk
 
+ERROR_COMMAND             = 0
+ACK_COMMAND               = 1
+PING_COMMAND              = 2
+LEFT_MOTOR_COMMAND        = 3
+RIGHT_MOTOR_COMMAND       = 4
+WEAPON_MOTOR_COMMAND      = 5
+DEFAULT_INTERFACE_COMMAND = 6
+
+ME   = 0
+USB  = 1
+HC05 = 2
+HC12 = 3
+
+ERROR_UNRECOGNIZED = 0
+ERROR_TIMEOUT      = 1
+ERROR_PARSE        = 2
+ERROR_VALUE        = 3
+
+
 class windows(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
@@ -117,7 +136,7 @@ class ControlOptions(tk.Frame):
         # set forward speed
         forward_str = self.forward_entry.get()
         if forward_str.isdigit():
-            max_forward = 127; min_forward = 0
+            max_forward = 255; min_forward = 127
             limited_value = limit_value(min_forward, max_forward, int(forward_str))
             forward_var = limited_value
             print(f'Forward speed: {forward_var}')
@@ -125,7 +144,7 @@ class ControlOptions(tk.Frame):
         # set bacwkard speed
         backward_str = self.backward_entry.get()
         if backward_str.isdigit():
-            max_backward = 127; min_backward = 0
+            max_backward = 0; min_backward = 127
             limited_value = limit_value(min_backward, max_backward, int(backward_str))
             backward_var = limited_value
             print(f'Bacward speed: {backward_var}')
@@ -191,7 +210,6 @@ class DeviceOptions(tk.Frame):
             self.open_button.config(text='Open serial')
             return
         
-
         # unfocus entries
         control_panel.focus()
 
@@ -216,13 +234,12 @@ class DeviceOptions(tk.Frame):
 
     def choose_transmitter(self):
         # send command to choose between main and backup transmitter
-        radio_choice_command = 9
-        value = self.radio_choice.get()
-        message = f'{radio_choice_command},{value}\n'
-        if ser.is_open:
-            ser.write(bytes(message, 'utf-8'))
+        if self.radio_choice.get():
+            value = HC12
         else:
-            print(message, end='')
+            value = HC05
+
+        send_command(DEFAULT_INTERFACE_COMMAND, value)
 
 def key_press(event):
     """ called when key is pressed """
@@ -274,7 +291,8 @@ def process_keys():
 
     if 'space' in keys: # go reverse!
         motor_b, motor_a = calculate_speed(keys)
-        motor_b = -1*motor_b; motor_a = -1*motor_a
+        # invert speed
+        #motor_b = -1*motor_b; motor_a = -1*motor_a
 
     else: # calculate speed based on keys pressed
         motor_a, motor_b = calculate_speed(keys)
@@ -302,8 +320,8 @@ def calculate_speed(keys):
         backward_speed = ControlOptions.backward_speed
         turn_fraction  = ControlOptions.turn_fraction
 
-    motor_a = 0
-    motor_b = 0
+    motor_a = 127
+    motor_b = 127
 
     if 'w' in keys: # forward
         motor_a += forward_speed
@@ -312,13 +330,13 @@ def calculate_speed(keys):
         motor_a -= backward_speed
         motor_b -= backward_speed
     if 'd' in keys: # right
-        if motor_a != 0:
+        if motor_a != 127:
             motor_b -= int(turn_fraction*motor_a)
         else:
             motor_a += int(turn_fraction*forward_speed)
             motor_b -= int(turn_fraction*forward_speed)
     if 'a' in keys: # left
-        if motor_a != 0:
+        if motor_a != 127:
                 motor_a -= int(turn_fraction*motor_a)
         else: 
             motor_a -= int(turn_fraction*forward_speed)
@@ -326,7 +344,7 @@ def calculate_speed(keys):
 
     def limit_motor(value):
         # limit the motor value
-        min_motor = -127; max_motor = 127
+        min_motor = 0; max_motor = 255
         if value <= min_motor:
             return min_motor
         elif value >= max_motor:
@@ -344,46 +362,41 @@ get_message_id.id = 0
 
 def send_message(motor_a, motor_b):
     """ send message to transmitter """
-    message_id = get_message_id()
-    command = 2
-    value = 2
 
     # motor a
-    command_a = 10
-    message_a = f'{command_a},{motor_a}\n'
+    command_a = LEFT_MOTOR_COMMAND
     # motor b
-    command_b = 11
-    message_b = f'{command_b},{motor_b}\n'
-    # string to be transmitted
-    transmit_message = ''
+    command_b = RIGHT_MOTOR_COMMAND
+
     # check if message_a or message_b  are duplicates from earlier
-    duplicate_message_a = send_message.old_message_a == message_a
-    duplicate_message_b = send_message.old_message_b == message_b
+    duplicate_message_a = send_message.old_motor_a == motor_a
+    duplicate_message_b = send_message.old_motor_b == motor_b
     if duplicate_message_a and duplicate_message_b:
         return
     # add message a
     if not duplicate_message_a:
-        transmit_message += message_a
-        send_message.old_message_a = message_a
+        send_command(command_a, motor_a)
+        send_message.old_message_a = motor_a
     # add message b
     if not duplicate_message_b:
-        transmit_message += message_b
-        send_message.old_message_b = message_b
-    # send message
+        send_command(command_b, motor_b)
+        send_message.old_motor_b = motor_b
+
+    # set the `last_message` label in controls to the new message
+    Controls.last_message.set(f'left: {motor_a}, right: {motor_b}')
+    print_new_commands()
+
+# static variables for `send_message`, for keeping track on earlier messages
+send_message.old_motor_a = 127
+send_message.old_motor_b = 127
+
+def send_command(command, value):
+    message_id = get_message_id()
     if ser.is_open:
-        
         head = command << 5 | message_id
         ser.write(bytearray([ord(':'), head, value, ord(';')]))
     else:
         print(f'command: {command}, id: {message_id}, value: {value}')
-
-    # set the `last_message` label in controls to the new message
-    Controls.last_message.set(transmit_message)
-    print_new_commands()
-
-# static variables for `send_message`, for keeping track on earlier messages
-send_message.old_message_a = ''
-send_message.old_message_b = ''
 
 def create_option_entry(root, label, pos, start_value):
     """
@@ -470,12 +483,13 @@ if __name__ == "__main__":
     # queue for incoming commands
     incoming_commands = Queue()
 
+
     # Variables for controlling the different speed values
-    ControlOptions.forward_speed  = 127
+    ControlOptions.forward_speed  = 128
     ControlOptions.backward_speed = 127
     ControlOptions.turn_fraction  = 1
-    ControlOptions.forward_speed_alt  = 127
-    ControlOptions.backward_speed_alt = 127
+    ControlOptions.forward_speed_alt  = 100
+    ControlOptions.backward_speed_alt = 100
     ControlOptions.turn_fraction_alt  = 0.5
 
     # tkinter setup
