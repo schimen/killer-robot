@@ -8,6 +8,8 @@ from sys                     import platform
 from serial                  import Serial
 from serial.serialutil       import SerialException
 from serial.tools.list_ports import comports
+from queue import Queue
+import threading
 import tkinter as tk
 
 class windows(tk.Tk):
@@ -156,10 +158,11 @@ class DeviceOptions(tk.Frame):
         label = tk.Label(self, text="Device Options")
         label.grid(row=0, column = 1)
         # Settings for transmitter device
+        
         self.port_entry = create_option_entry( self
                                              , 'Port'
                                              , (1, 0)
-                                             , list(port.device for port in comports())[0]
+                                             , '/dev/ttyACM0'#list(port.device for port in comports())[0]
                                              )
         self.baud_entry = create_option_entry( self
                                              , 'Baud rate'
@@ -188,6 +191,7 @@ class DeviceOptions(tk.Frame):
             self.open_button.config(text='Open serial')
             return
         
+
         # unfocus entries
         control_panel.focus()
 
@@ -202,6 +206,9 @@ class DeviceOptions(tk.Frame):
             print(f'Opening serial at:\nport: {ser.port}, baud: {ser.baudrate}')
             # if the serial opened succesfully, the button will now close the serial
             self.open_button.config(text=f'Close serial')
+
+            # print all serial communication to terminal
+            threading.Thread(target=read_serial_thread, args=(ser,), daemon=True).start()
 
         except SerialException:
             print(f'Could not open serial port at {ser.port} with {ser.baudrate}.')
@@ -328,8 +335,19 @@ def calculate_speed(keys):
 
     return limit_motor(motor_a), limit_motor(motor_b)
 
+def get_message_id():
+    get_message_id.id += 1
+    if get_message_id.id > 31:
+        get_message_id.id = 0
+    return get_message_id.id
+get_message_id.id = 0
+
 def send_message(motor_a, motor_b):
     """ send message to transmitter """
+    message_id = get_message_id()
+    command = 2
+    value = 2
+
     # motor a
     command_a = 10
     message_a = f'{command_a},{motor_a}\n'
@@ -353,12 +371,15 @@ def send_message(motor_a, motor_b):
         send_message.old_message_b = message_b
     # send message
     if ser.is_open:
-        ser.write(bytes(transmit_message, 'utf-8'))
+        
+        head = command << 5 | message_id
+        ser.write(bytearray([ord(':'), head, value, ord(';')]))
     else:
-        print(transmit_message, end='')
+        print(f'command: {command}, id: {message_id}, value: {value}')
 
     # set the `last_message` label in controls to the new message
     Controls.last_message.set(transmit_message)
+    print_new_commands()
 
 # static variables for `send_message`, for keeping track on earlier messages
 send_message.old_message_a = ''
@@ -388,6 +409,53 @@ def create_option_check(root, pos, start_value, **kwargs):
     transmitter_checkbutton.grid(row=row,column=column)
     return checkbutton_variable
 
+def read_serial_thread(ser):
+    """
+    Function that continually reads serial information and prints to terminal
+    """
+    serial_buffer = b''
+    while ser.is_open:
+        try:
+            # add new characters to buffer
+            serial_buffer += ser.read()
+
+        except TypeError:
+            # serial was apparently closed
+            print('Stopped listening to serial')
+            return None
+
+        if b':' not in serial_buffer:
+            # reset serial_buffer if there is no command start
+            serial_buffer = b''
+
+        # command beginning and end is in buffer
+        if b':' in serial_buffer and b';' in serial_buffer:
+            while len(serial_buffer) > 0:
+                start = serial_buffer.find(b':')
+                end = serial_buffer.find(b';') + 1
+                if start >= end:
+                    print('received partial command, throw it away')
+                    serial_buffer = serial_buffer[start:]
+                elif end - start > 4:
+                    serial_buffer = serial_buffer[start+1:]
+                else:
+                    command_string = serial_buffer[start:end]
+                    if len(command_string) == 4:
+                        head = command_string[1]
+                        value = command_string[2]
+
+                    command = (head & 0xE0) >> 5
+                    message_id = head & 0x1F
+                    incoming_commands.put((command, message_id, value))
+
+                    # command finished, reset
+                    serial_buffer = serial_buffer[end:]
+
+def print_new_commands():
+    if not incoming_commands.empty():
+        for i in range(incoming_commands.qsize()):
+            print(f'new command: {incoming_commands.get()}')
+
 if __name__ == "__main__":
     # turn off key repeating, global os configuration (on linux)
     if platform == 'linux':
@@ -398,6 +466,9 @@ if __name__ == "__main__":
 
     # create serial object
     ser = Serial()
+
+    # queue for incoming commands
+    incoming_commands = Queue()
 
     # Variables for controlling the different speed values
     ControlOptions.forward_speed  = 127
