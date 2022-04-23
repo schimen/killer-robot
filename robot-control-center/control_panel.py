@@ -5,10 +5,19 @@ Made by Simen
 
 from os                      import system
 from sys                     import platform
+from tkinter.tix import MAX
 from serial                  import Serial
 from serial.serialutil       import SerialException
 from serial.tools.list_ports import comports
 import tkinter as tk
+
+MAX_DC = 255
+MIN_DC = 127
+STEP_DC = 25
+
+#define MOTOR_1_COMMAND 10
+#define MOTOR_2_COMMAND 11
+#define SERVO_COMMAND   12
 
 class windows(tk.Tk):
     def __init__(self, *args, **kwargs):
@@ -76,11 +85,6 @@ class ControlOptions(tk.Frame):
                                                 , 'Backward speed'
                                                 , (2, 0)
                                                 , self.backward_speed
-                                                )
-        self.turnrate_entry = create_option_entry( self
-                                                , 'Turning rate'
-                                                , (3, 0)
-                                                , self.turn_fraction
                                                 )
         # setting alternate variables
         self.set_shift_values = create_option_check( self
@@ -159,7 +163,7 @@ class DeviceOptions(tk.Frame):
         self.port_entry = create_option_entry( self
                                              , 'Port'
                                              , (1, 0)
-                                             , list(port.device for port in comports())[0]
+                                             , ''#list(port.device for port in comports())[0]
                                              )
         self.baud_entry = create_option_entry( self
                                              , 'Baud rate'
@@ -239,6 +243,8 @@ def process_keys():
                     ,  9: 'esc'
                     , 50: 'shift' 
                     , 65: 'space'
+                    , 111: 'up'
+                    , 116: 'down'
                     }
     else : 
         key_links = { 87: 'w'
@@ -248,6 +254,8 @@ def process_keys():
                     , 27: 'esc'
                     , 16: 'shift' 
                     , 32: 'space'
+                    , 38: 'up'
+                    , 40: 'down'
                     }
     # if there is no change since last time keys were pressed
     if pressed_keys == process_keys.last_pressed_keys:
@@ -317,6 +325,28 @@ def calculate_speed(keys):
             motor_a -= int(turn_fraction*forward_speed)
             motor_b += int(turn_fraction*forward_speed)
 
+    if 'up' in keys:
+        calculate_speed.pwm_dc += STEP_DC
+        if calculate_speed.pwm_dc > MAX_DC:
+            calculate_speed.pwm_dc = MAX_DC
+
+        msg = f'12,{calculate_speed.pwm_dc}\n'
+        if ser.is_open:
+            ser.write(bytes(msg, 'utf-8'))
+        else:
+            print(msg, end='')
+
+    if 'down' in keys:
+        calculate_speed.pwm_dc -= STEP_DC
+        if calculate_speed.pwm_dc < MIN_DC:
+            calculate_speed.pwm_dc = MIN_DC
+
+        msg = f'12,{calculate_speed.pwm_dc}\n'
+        if ser.is_open:
+            ser.write(bytes(msg, 'utf-8'))
+        else:
+            print(msg, end='')
+
     def limit_motor(value):
         # limit the motor value
         min_motor = -127; max_motor = 127
@@ -327,6 +357,8 @@ def calculate_speed(keys):
         return value
 
     return limit_motor(motor_a), limit_motor(motor_b)
+
+calculate_speed.pwm_dc = MIN_DC
 
 def send_message(motor_a, motor_b):
     """ send message to transmitter """
