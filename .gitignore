@@ -30,3 +30,8 @@ fp-info-cache
 
 # Build folders
 build/
+
+# Other
+.envrc
+**/.vscode/
+
