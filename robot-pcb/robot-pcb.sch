@@ -14,17 +14,6 @@ Comment3 ""
 Comment4 ""
 $EndDescr
 $Comp
-L power:GND #PWR0101
-U 1 1 62655056
-P 8950 1400
-F 0 "#PWR0101" H 8950 1150 50  0001 C CNN
-F 1 "GND" H 8955 1227 50  0000 C CNN
-F 2 "" H 8950 1400 50  0001 C CNN
-F 3 "" H 8950 1400 50  0001 C CNN
-	1    8950 1400
-	1    0    0    -1  
-$EndComp
-$Comp
 L power:+3V3 #PWR0102
 U 1 1 62660E6E
 P 9100 2000
@@ -222,7 +211,7 @@ F 3 "~" H 2300 3450 50  0001 C CNN
 $EndComp
 Text Notes 2150 3200 0    50   ~ 0
 En
-Text Notes 7950 1000 0    50   ~ 0
+Text Notes 8750 900  0    50   ~ 0
 Power
 Text Notes 8250 3650 0    50   ~ 0
 \nMotor driver
@@ -715,45 +704,45 @@ Connection ~ 9100 2300
 $Comp
 L Connector:Screw_Terminal_01x02 J9
 U 1 1 62656411
-P 9150 1400
-F 0 "J9" H 9250 1300 50  0000 L CNN
-F 1 "Screw_Terminal_01x02" H 9100 1200 50  0000 L CNN
-F 2 "TerminalBlock:TerminalBlock_bornier-2_P5.08mm" H 9150 1400 50  0001 C CNN
-F 3 "~" H 9150 1400 50  0001 C CNN
-	1    9150 1400
+P 9350 1300
+F 0 "J9" H 9450 1200 50  0000 L CNN
+F 1 "Screw_Terminal_01x02" H 9300 1100 50  0000 L CNN
+F 2 "TerminalBlock:TerminalBlock_bornier-2_P5.08mm" H 9350 1300 50  0001 C CNN
+F 3 "~" H 9350 1300 50  0001 C CNN
+	1    9350 1300
 	1    0    0    1   
 $EndComp
 $Comp
 L Connector:Screw_Terminal_01x02 J6
 U 1 1 63179D98
-P 8150 1400
-F 0 "J6" H 8068 1075 50  0000 C CNN
-F 1 "Screw_Terminal_01x02" H 8068 1166 50  0000 C CNN
-F 2 "TerminalBlock:TerminalBlock_bornier-2_P5.08mm" H 8150 1400 50  0001 C CNN
-F 3 "~" H 8150 1400 50  0001 C CNN
-	1    8150 1400
+P 8950 1300
+F 0 "J6" H 8868 975 50  0000 C CNN
+F 1 "Screw_Terminal_01x02" H 8868 1066 50  0000 C CNN
+F 2 "TerminalBlock:TerminalBlock_bornier-2_P5.08mm" H 8950 1300 50  0001 C CNN
+F 3 "~" H 8950 1300 50  0001 C CNN
+	1    8950 1300
 	-1   0    0    1   
 $EndComp
 $Comp
 L power:GND #PWR0124
 U 1 1 631842F3
-P 8350 1400
-F 0 "#PWR0124" H 8350 1150 50  0001 C CNN
-F 1 "GND" H 8355 1227 50  0000 C CNN
-F 2 "" H 8350 1400 50  0001 C CNN
-F 3 "" H 8350 1400 50  0001 C CNN
-	1    8350 1400
+P 9150 1350
+F 0 "#PWR0124" H 9150 1100 50  0001 C CNN
+F 1 "GND" H 9155 1177 50  0000 C CNN
+F 2 "" H 9150 1350 50  0001 C CNN
+F 3 "" H 9150 1350 50  0001 C CNN
+	1    9150 1350
 	1    0    0    -1  
 $EndComp
 $Comp
 L power:+12V #PWR0125
 U 1 1 6318498A
-P 8950 1300
-F 0 "#PWR0125" H 8950 1150 50  0001 C CNN
-F 1 "+12V" H 8965 1473 50  0000 C CNN
-F 2 "" H 8950 1300 50  0001 C CNN
-F 3 "" H 8950 1300 50  0001 C CNN
-	1    8950 1300
+P 9150 1150
+F 0 "#PWR0125" H 9150 1000 50  0001 C CNN
+F 1 "+12V" H 9165 1323 50  0000 C CNN
+F 2 "" H 9150 1150 50  0001 C CNN
+F 3 "" H 9150 1150 50  0001 C CNN
+	1    9150 1150
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -1145,20 +1134,8 @@ Wire Wire Line
 	9750 4900 9750 5000
 Wire Wire Line
 	9750 5000 9700 5000
-$Comp
-L Switch:SW_DIP_x01 SW3
-U 1 1 63210AE4
-P 8650 1300
-F 0 "SW3" H 8650 1567 50  0000 C CNN
-F 1 "SW_DIP_x01" H 8650 1476 50  0000 C CNN
-F 2 "Button_Switch_SMD:SW_DIP_SPSTx01_Slide_9.78x4.72mm_W8.61mm_P2.54mm" H 8650 1300 50  0001 C CNN
-F 3 "~" H 8650 1300 50  0001 C CNN
-	1    8650 1300
-	1    0    0    -1  
-$EndComp
 Connection ~ 8800 4500
 Connection ~ 8800 4900
-Connection ~ 8950 1300
 $Comp
 L Device:R R11
 U 1 1 6325C553
@@ -1181,10 +1158,10 @@ Wire Wire Line
 Wire Wire Line
 	4000 1350 4000 1600
 $Comp
-L Switch:SW_DPST_x2 SW4
+L Switch:SW_DPST_x2 SW3
 U 1 1 6327B921
 P 4600 1500
-F 0 "SW4" H 4850 1700 50  0000 C CNN
+F 0 "SW3" H 4850 1700 50  0000 C CNN
 F 1 "SW_DPST_x2" H 4900 1600 50  0000 C CNN
 F 2 "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical" H 4600 1500 50  0001 C CNN
 F 3 "~" H 4600 1500 50  0001 C CNN
@@ -1205,4 +1182,10 @@ F 3 "" H 4800 1550 50  0001 C CNN
 $EndComp
 Wire Wire Line
 	4800 1550 4800 1500
+Connection ~ 9150 1200
+Wire Wire Line
+	9150 1150 9150 1200
+Wire Wire Line
+	9150 1300 9150 1350
+Connection ~ 9150 1300
 $EndSCHEMATC
