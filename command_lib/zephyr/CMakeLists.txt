@@ -1,4 +1,4 @@
-if(CONFIG_CUSTOM_DRIVERS)
+if(CONFIG_COMMAND_LIB)
   zephyr_include_directories(.)
 
   zephyr_library()

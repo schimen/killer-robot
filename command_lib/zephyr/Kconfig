@@ -1,0 +1,3 @@
+
+config COMMAND_LIB
+	bool "Use command lib in project"
