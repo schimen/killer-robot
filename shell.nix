@@ -6,6 +6,7 @@
     (python39.withPackages(ps: with ps; [
       bleak
       west
+      requests
       pyelftools
       pyserial
       pygatt
