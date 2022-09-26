@@ -1,9 +1,8 @@
 { pkgs ? import <nixpkgs> {} }:
-let
-  xtensa-esp32-elf = pkgs.callPackage /etc/nixos/nix-config/packages/esp-toolchain {};
-in
-pkgs.mkShell {
-  buildInputs = with pkgs; [
+
+(pkgs.buildFHSUserEnv {
+  name = "zephyr-env";
+  targetPkgs = pkgs: (with pkgs; [
     (python39.withPackages(ps: with ps; [
       bleak
       west
@@ -11,18 +10,19 @@ pkgs.mkShell {
       pyserial
       pygatt
     ]))
-    xtensa-esp32-elf
     openocd
     dtc
     ninja
     dfu-util
     cmake
-  ];
-  shellHook = ''
-    export ZEPHYR_BASE=/home/simen/mikrokontroller/zephyrproject/zephyr
-
-    export ZEPHYR_TOOLCHAIN_VARIANT="espressif"
-    export ESPRESSIF_TOOLCHAIN_PATH=${xtensa-esp32-elf}/xtensa-esp32-elf
-
+  ]);
+  runScript = ''
+    bash -c '\
+    export ZEPHYR_BASE=$HOME/mikrokontroller/zephyrproject/zephyr; \
+    export ZEPHYR_TOOLCHAIN_VARIANT="espressif"; \
+    export ESPRESSIF_TOOLCHAIN_PATH="$HOME/.espressif/tools/xtensa-esp32-elf/esp-2022r1-11.2.0/xtensa-esp32-elf"; \
+    export PATH=$PATH:$ESPRESSIF_TOOLCHAIN_PATH/bin; \
+    bash'
   '';
-}
+}).env
+
