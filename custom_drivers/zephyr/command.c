@@ -1,6 +1,6 @@
 #include "command.h"
 
-//static struct k_msgq incoming_commands;
+// Create incoming command queue and ack event for acks
 K_MSGQ_DEFINE(incoming_commands, sizeof(struct command_data), MAX_MSGS, 4);
 K_EVENT_DEFINE(ack_event);
 
@@ -28,18 +28,35 @@ int wait_for_ack(uint8_t id, int64_t *receive_time) {
     return 0;
 }
 
-void add_command(struct command_data* command)
-{
-    printk("Adding command\n");
+void add_command(struct command_data command) {
 	// Add new command to incoming commands
-	while (k_msgq_put(&incoming_commands, command, K_NO_WAIT) != 0) {
+	while (k_msgq_put(&incoming_commands, &command, K_NO_WAIT) != 0) {
 		// message queue is full, purge and try again
-        printk("queue full\n");
 		k_msgq_purge(&incoming_commands);
 	}
-	printk("Added command to queue\n");
 }
 
 int get_command(struct command_data* command) {
     return k_msgq_get(&incoming_commands, command, K_FOREVER);
+}
+
+void ack(struct command_writer *writer, struct command_data command, uint8_t receive_time) {
+    command.key = ack_command;
+    command.value = receive_time;
+    (*writer->send_command_func)(writer->iface, command);
+}
+
+void error(struct command_writer *writer, struct command_data command, uint8_t error_code) {
+    command.key = error_command;
+    command.value = error_code;
+    (*writer->send_command_func)(writer->iface, command);
+}
+
+uint8_t ping(struct command_writer *writer) {
+    struct command_data command;
+    command.key = ping_command;
+    command.id = get_message_id();
+    command.value = 0;
+    (*writer->send_command_func)(writer->iface, command);
+    return command.id;
 }

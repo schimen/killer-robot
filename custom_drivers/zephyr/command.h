@@ -1,8 +1,7 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
-#include <zephyr.h>
-#include <kernel.h>
+#include <zephyr/kernel.h>
 
 #define ACK_TIMEOUT K_MSEC(250)
 
@@ -59,7 +58,13 @@ struct command_data {
     uint8_t id;
     /* Value used in command (8 bits) */
     uint8_t value;
-    /* Interface used to send command data */
+};
+
+/** @brief Struct used for sending commands, independent of interface */
+struct command_writer {
+	/* Pointer to function for sending command */
+	void (*send_command_func)(void*, struct command_data);
+    /* Pointer to communication interface */
     void* iface;
 };
 
@@ -79,8 +84,47 @@ uint8_t get_message_id();
  */
 int wait_for_ack(uint8_t id, int64_t *receive_time);
 
-void add_command(struct command_data* command);
+/**
+ * @brief Add command to command queue
+ * 
+ * @param command 
+ */
+void add_command(struct command_data command);
 
+/**
+ * @brief Get next command from the command queue
+ * 
+ * @param command Pointer to where command will be saved
+ * 
+ * @return 0 if command received, negative value if error
+ */
 int get_command(struct command_data* command);
+
+/**
+ * @brief Send acknowledgement command
+ *
+ * @param writer Pointer to communication interface
+ * @param command Command that should be acknowledged
+ * @param receive_time Time it took from sending command to receiving ack
+ */
+void ack(struct command_writer *writer, struct command_data command, uint8_t receive_time);
+
+/**
+ * @brief Send error
+ *
+ * @param writer Pointer to communication interface
+ * @param command Command contatining data
+ * @param error_code Error code corresponding to enum error_codes
+ */
+void error(struct command_writer *writer, struct command_data command, uint8_t error_code);
+
+/**
+ * @brief Send ping command to specified interface and wait for ack
+ *
+ * @param writer Pointer to communication interface
+ *
+ * @return id of new ping message
+ */
+uint8_t ping(struct command_writer *writer);
 
 #endif

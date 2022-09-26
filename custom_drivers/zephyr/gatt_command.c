@@ -1,11 +1,12 @@
 #include "gatt_command.h"
 
-static struct command_data new_command;
-
-void mtu_updated(struct bt_conn *conn, uint16_t tx, uint16_t rx)
-{
-	printk("Updated MTU: TX: %d RX: %d bytes\n", tx, rx);
-}
+#define BT_UUID_CUSTOM_SERVICE_VAL BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef0)
+static struct bt_uuid_128 command_uuid = BT_UUID_INIT_128(
+	BT_UUID_CUSTOM_SERVICE_VAL
+);
+static struct bt_uuid_128 command_value_uuid = BT_UUID_INIT_128(
+	BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef1)
+);
 
 ssize_t write_command(
 	struct bt_conn *conn,
@@ -15,26 +16,24 @@ ssize_t write_command(
 	uint16_t offset,
 	uint8_t flags
 ) {
-
-	printk("writing command\n");
+	// Pointer used to read values written to service
 	uint8_t *value = attr->user_data;
 
+	// Error if invalid offset
 	if (offset + len > COMMAND_LEN) {
-		printk("Invalid offset (offset: %d, len: %d)", offset, len);
 		return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
 	}
-	printk("correct offset and len\n");
 
+	// Copy buffer to value
 	memcpy(value + offset, buf, len);
-	printk("saved new value\n");
-	printk("copied new value\n");
-	uint8_t head = value[0];
-	new_command.key = ((head & 0xE0) >> 5); // read the 3 MSB from head
-	new_command.id = head & 0x1F;           // read the 5 LSB from head
-	new_command.value = value[1];
 
-	add_command(&new_command);
-	printk("Finished write command\n");
+	// Create command data from value
+	uint8_t head = value[0];
+	struct command_data command;
+	command.key = ((head & 0xE0) >> 5); // read the 3 MSB from head
+	command.id = head & 0x1F;           // read the 5 LSB from head
+	command.value = value[1];
+	add_command(command);
 
 	return len;
 }
@@ -51,83 +50,24 @@ static ssize_t read_command(
 				 strlen(value));
 }
 
-void connected(struct bt_conn *conn, uint8_t err)
-{
-	if (err) {
-		printk("Connection failed (err 0x%02x)\n", err);
-		return;
+static const struct bt_data ad[] = {
+	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
+	BT_DATA_BYTES(BT_DATA_UUID128_ALL, BT_UUID_CUSTOM_SERVICE_VAL),
+};
+
+void bt_ready(void) {
+	// Start bluetooth advertising
+	bt_le_adv_start(BT_LE_ADV_CONN_NAME, ad, ARRAY_SIZE(ad), NULL, 0);
+}
+
+int peripheral_init() {
+	// Enable bluetooth, return if error
+	if (bt_enable(NULL)) {
+		return -1;
 	}
-	printk("Connected\n");
-	gatt_iface.conn = conn;
-}
-
-void disconnected(struct bt_conn *conn, uint8_t reason)
-{
-	printk("Disconnected (reason 0x%02x)\n", reason);
-}
-
-void bt_ready(void)
-{
-	int err;
-
-	printk("Bluetooth initialized\n");
-
-	err = bt_le_adv_start(BT_LE_ADV_CONN_NAME, ad, ARRAY_SIZE(ad), NULL, 0);
-	if (err) {
-		printk("Advertising failed to start (err %d)\n", err);
-		return;
-	}
-
-	printk("Advertising successfully started\n");
-}
-
-void auth_passkey_display(struct bt_conn *conn, unsigned int passkey)
-{
-	char addr[BT_ADDR_LE_STR_LEN];
-
-	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
-
-	printk("Passkey for %s: %06u\n", addr, passkey);
-}
-
-void auth_cancel(struct bt_conn *conn)
-{
-	char addr[BT_ADDR_LE_STR_LEN];
-
-	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
-
-	printk("Pairing cancelled: %s\n", addr);
-}
-
-void send_command_gatt(struct command_data* command, void* iface_ptr) {
-	printk("test command pointer");
-	//printk("send command gatt");
-	//struct gatt_interface* iface = iface_ptr;
-	//int err = bt_gatt_notify_uuid(iface->conn, &command_value_uuid.uuid, NULL, &command_value, 2);
-	//if (err) {
-	//	printk("notification error\n");
-	//}
-	//printk("notified connection\n");
-}
-
-
-void peripheral_init()
-{
-	int err;
-	gatt_iface.send_command_func = &send_command;
-	printk("%p\n", gatt_iface.send_command_func);
-	printk("start bt\n");
-	err = bt_enable(NULL);
-	if (err) {
-		printk("Bluetooth init failed (err %d)\n", err);
-		return;
-	}
-	printk("bt started\n");
+	// Start bluetooth
 	bt_ready();
-	printk("register callback gatt\n");
-	bt_gatt_cb_register(&gatt_callbacks);
-	printk("register callback auth\n");
-	bt_conn_auth_cb_register(&auth_cb_display);
+	return 0;
 }
 
 BT_GATT_SERVICE_DEFINE(command,
