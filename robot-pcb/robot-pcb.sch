@@ -136,7 +136,7 @@ U 1 1 6270C253
 P 3150 3300
 F 0 "SW2" H 3000 3600 50  0000 L CNN
 F 1 "SW_Push" H 3000 3500 50  0000 L CNN
-F 2 "Button_Switch_SMD:SW_Push_SPST_NO_Alps_SKRK" H 3150 3500 50  0001 C CNN
+F 2 "robot-pcb_custom:wurth_tactile_sw" H 3150 3500 50  0001 C CNN
 F 3 "~" H 3150 3500 50  0001 C CNN
 	1    3150 3300
 	1    0    0    -1  
@@ -193,7 +193,7 @@ U 1 1 62736634
 P 2500 3300
 F 0 "SW1" H 2650 3600 50  0000 R CNN
 F 1 "SW_Push" H 2650 3500 50  0000 R CNN
-F 2 "Button_Switch_SMD:SW_Push_SPST_NO_Alps_SKRK" H 2500 3500 50  0001 C CNN
+F 2 "robot-pcb_custom:wurth_tactile_sw" H 2500 3500 50  0001 C CNN
 F 3 "~" H 2500 3500 50  0001 C CNN
 	1    2500 3300
 	-1   0    0    -1  
@@ -376,17 +376,6 @@ F 3 "~" H 5700 6900 50  0001 C CNN
 	0    -1   -1   0   
 $EndComp
 $Comp
-L Connector_Generic:Conn_02x05_Counter_Clockwise J3
-U 1 1 6271D303
-P 5250 6800
-F 0 "J3" H 5300 7217 50  0000 C CNN
-F 1 "Conn_02x05_Counter_Clockwise" H 5300 7126 50  0000 C CNN
-F 2 "Connector_PinHeader_1.27mm:PinHeader_2x05_P1.27mm_Vertical_SMD" H 5250 6800 50  0001 C CNN
-F 3 "~" H 5250 6800 50  0001 C CNN
-	1    5250 6800
-	1    0    0    -1  
-$EndComp
-$Comp
 L power:GND #PWR0113
 U 1 1 627423D6
 P 5050 7000
@@ -455,17 +444,6 @@ NoConn ~ 2300 1600
 NoConn ~ 2000 1600
 Text GLabel 1750 6700 0    50   Input ~ 0
 EN
-$Comp
-L Connector_Generic:Conn_02x03_Counter_Clockwise J1
-U 1 1 631362EE
-P 1950 6800
-F 0 "J1" H 2000 7117 50  0000 C CNN
-F 1 "Conn_02x03_Counter_Clockwise" H 2000 7026 50  0000 C CNN
-F 2 "Connector_PinHeader_1.27mm:PinHeader_2x03_P1.27mm_Vertical_SMD" H 1950 6800 50  0001 C CNN
-F 3 "~" H 1950 6800 50  0001 C CNN
-	1    1950 6800
-	1    0    0    -1  
-$EndComp
 Text Notes 1050 6400 0    50   ~ 0
 Programming interface
 Text GLabel 1750 6800 0    50   Input ~ 0
@@ -588,7 +566,7 @@ L Device:R R7
 U 1 1 631D156C
 P 9350 2300
 F 0 "R7" V 9450 2300 50  0000 C CNN
-F 1 "330" V 9550 2300 50  0000 C CNN
+F 1 "68" V 9550 2300 50  0000 C CNN
 F 2 "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder" V 9280 2300 50  0001 C CNN
 F 3 "~" H 9350 2300 50  0001 C CNN
 	1    9350 2300
@@ -705,7 +683,7 @@ $Comp
 L Connector:Screw_Terminal_01x02 J9
 U 1 1 62656411
 P 9350 1300
-F 0 "J9" H 9450 1200 50  0000 L CNN
+F 0 "J9" H 9300 1400 50  0000 L CNN
 F 1 "Screw_Terminal_01x02" H 9300 1100 50  0000 L CNN
 F 2 "TerminalBlock:TerminalBlock_bornier-2_P5.08mm" H 9350 1300 50  0001 C CNN
 F 3 "~" H 9350 1300 50  0001 C CNN
@@ -716,7 +694,7 @@ $Comp
 L Connector:Screw_Terminal_01x02 J6
 U 1 1 63179D98
 P 8950 1300
-F 0 "J6" H 8868 975 50  0000 C CNN
+F 0 "J6" H 8950 1400 50  0000 C CNN
 F 1 "Screw_Terminal_01x02" H 8868 1066 50  0000 C CNN
 F 2 "TerminalBlock:TerminalBlock_bornier-2_P5.08mm" H 8950 1300 50  0001 C CNN
 F 3 "~" H 8950 1300 50  0001 C CNN
@@ -1107,7 +1085,7 @@ L Device:R R10
 U 1 1 6318E751
 P 3700 3600
 F 0 "R10" H 3770 3646 50  0000 L CNN
-F 1 "330" H 3770 3555 50  0000 L CNN
+F 1 "68" H 3770 3555 50  0000 L CNN
 F 2 "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder" V 3630 3600 50  0001 C CNN
 F 3 "~" H 3700 3600 50  0001 C CNN
 	1    3700 3600
@@ -1188,4 +1166,26 @@ Wire Wire Line
 Wire Wire Line
 	9150 1300 9150 1350
 Connection ~ 9150 1300
+$Comp
+L Connector_Generic:Conn_02x05_Odd_Even J3
+U 1 1 632CCE3A
+P 5250 6800
+F 0 "J3" H 5300 7217 50  0000 C CNN
+F 1 "Conn_02x05_Odd_Even" H 5300 7126 50  0000 C CNN
+F 2 "Connector_PinHeader_1.27mm:PinHeader_2x05_P1.27mm_Vertical_SMD" H 5250 6800 50  0001 C CNN
+F 3 "~" H 5250 6800 50  0001 C CNN
+	1    5250 6800
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector_Generic:Conn_02x03_Odd_Even J1
+U 1 1 632E355A
+P 1950 6800
+F 0 "J1" H 2000 7117 50  0000 C CNN
+F 1 "Conn_02x03_Odd_Even" H 2000 7026 50  0000 C CNN
+F 2 "Connector_PinHeader_1.27mm:PinHeader_2x03_P1.27mm_Vertical_SMD" H 1950 6800 50  0001 C CNN
+F 3 "~" H 1950 6800 50  0001 C CNN
+	1    1950 6800
+	1    0    0    -1  
+$EndComp
 $EndSCHEMATC
