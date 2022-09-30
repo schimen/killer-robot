@@ -1,33 +1,27 @@
 / {
-	chosen {
-		zephyr,console = &cdc_acm_uart0;
-	};
-
     aliases {
-        led0 = &green_led;
-        hc05 = &lpuart3;
+        greenled = &green_led;
+        redled = &red_led;
         hc12 = &lpuart2;
+        hc12set = &hc12_set;
+        usb = &cdc_acm_uart0;
+
      };
     
     pins {
         compatible = "gpio-leds";
-        green_led: led-2 {
-            gpios = <&gpio1 16 GPIO_ACTIVE_HIGH>;
-            label = "Green status led";
-        };
-        red_led: led-3 {
-            gpios = <&gpio1 24 GPIO_ACTIVE_HIGH>;
-            label = "Red status led";
-        };
-        hc05_set: set-1 {
-            gpios = <&gpio1 17 GPIO_ACTIVE_HIGH>;
-            label = "HC05 AT set pin";
-        };
-        hc12_set: set-2 {
+        hc12_set: set-1 {
             gpios = <&gpio2 3 GPIO_ACTIVE_HIGH>;
             label = "HC12 AT set pin";
         };
-
+        green_led: led-1 {
+            gpios = <&gpio1 16 GPIO_ACTIVE_HIGH>;
+            label = "Green status led";
+        };
+        red_led: led-2 {
+            gpios = <&gpio1 24 GPIO_ACTIVE_HIGH>;
+            label = "Red status led";
+        };
     };
 };
 
@@ -41,13 +35,4 @@
 &lpuart2 {
 	status = "okay";
 	current-speed = < 9600 >;
-};
-
-&lpuart3 {
-	status = "okay";
-	current-speed = < 9600 >;
-};
-
-&lpuart6 {
-    status = "disabled";
 };
