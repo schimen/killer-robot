@@ -31,6 +31,9 @@ fp-info-cache
 # Build folders
 build/
 
+# Nix stuff
+shell.nix
+
 # Other
 .envrc
 **/.vscode/
