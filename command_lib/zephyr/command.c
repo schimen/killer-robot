@@ -14,6 +14,10 @@ uint8_t get_message_id() {
     return message_id;
 }
 
+void set_ack(uint8_t id) {
+    k_event_set(&ack_event, (1 << id));
+}
+
 int wait_for_ack(uint8_t id, int64_t *receive_time) {
     int64_t start_time = k_uptime_get();
     if (k_event_wait(&ack_event, (1 << id), true, ACK_TIMEOUT) == 0) {
@@ -40,23 +44,23 @@ int get_command(struct command_data* command) {
     return k_msgq_get(&incoming_commands, command, K_FOREVER);
 }
 
-void ack(struct command_writer *writer, struct command_data command, uint8_t receive_time) {
+void send_ack(struct command_data command, uint8_t receive_time) {
     command.key = ack_command;
     command.value = receive_time;
-    (*writer->send_command_func)(writer->iface, command);
+    (command.writer->send_command_func)(command);
 }
 
-void error(struct command_writer *writer, struct command_data command, uint8_t error_code) {
+void send_error(struct command_data command, uint8_t error_code) {
     command.key = error_command;
     command.value = error_code;
-    (*writer->send_command_func)(writer->iface, command);
+    (command.writer->send_command_func)(command);
 }
 
-uint8_t ping(struct command_writer *writer) {
+uint8_t send_ping(struct command_writer *writer) {
     struct command_data command;
     command.key = ping_command;
     command.id = get_message_id();
     command.value = 0;
-    (*writer->send_command_func)(writer->iface, command);
+    (*writer->send_command_func)(command);
     return command.id;
 }

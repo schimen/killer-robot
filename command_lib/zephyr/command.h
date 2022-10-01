@@ -22,14 +22,14 @@ enum commands {
     right_motor_command,
     /* Set speed of weapon motor */
     weapon_motor_command,
-    /* Set default interface */
-    default_interface_command
 };
 
 /** @brief Enumerated interfaces for ping command */
 enum pings {
-    /* Ping was sent to me, I must ack */
-    ping_me,
+    /* Send ping to transmitter */
+    ping_transmitter,
+    /* Send ping to robot */
+    ping_robot,
     /* Send ping to USB interface */
     ping_usb,
     /* Send ping to HC-05 interface */
@@ -50,7 +50,18 @@ enum errors {
     error_value
 };
 
+/** @brief Struct used for sending commands, independent of interface */
+struct command_writer;
 /** @brief Structure containing all data in commands */
+struct command_data;
+
+struct command_writer {
+    /* Pointer to function for sending command */
+	int (*send_command_func)(struct command_data);
+    /* Pointer to communication interface */
+    void* iface;
+};
+
 struct command_data {
     /* Command key from commands enum (3 bits) */
     uint8_t key;
@@ -58,14 +69,8 @@ struct command_data {
     uint8_t id;
     /* Value used in command (8 bits) */
     uint8_t value;
-};
-
-/** @brief Struct used for sending commands, independent of interface */
-struct command_writer {
-	/* Pointer to function for sending command */
-	void (*send_command_func)(void*, struct command_data);
-    /* Pointer to communication interface */
-    void* iface;
+    /* Pointer to communication interface where command will be sent */
+    struct command_writer *writer;
 };
 
 /**
@@ -74,6 +79,13 @@ struct command_writer {
  * @return id
  */
 uint8_t get_message_id();
+
+/**
+ * @brief Set ack event when receiving answer
+ * 
+ * @param id Id of message that was received
+ */
+void set_ack(uint8_t id);
 
 /**
  * @brief Wait for acknowledgment of id
@@ -98,33 +110,31 @@ void add_command(struct command_data command);
  * 
  * @return 0 if command received, negative value if error
  */
-int get_command(struct command_data* command);
+int get_command(struct command_data *command);
 
 /**
  * @brief Send acknowledgement command
  *
- * @param writer Pointer to communication interface
  * @param command Command that should be acknowledged
  * @param receive_time Time it took from sending command to receiving ack
  */
-void ack(struct command_writer *writer, struct command_data command, uint8_t receive_time);
+void send_ack(struct command_data command, uint8_t receive_time);
 
 /**
  * @brief Send error
  *
- * @param writer Pointer to communication interface
  * @param command Command contatining data
  * @param error_code Error code corresponding to enum error_codes
  */
-void error(struct command_writer *writer, struct command_data command, uint8_t error_code);
+void send_error(struct command_data command, uint8_t error_code);
 
 /**
  * @brief Send ping command to specified interface and wait for ack
  *
- * @param writer Pointer to communication interface
+ * @param writer Pointer to command writer, that handles sending the command
  *
  * @return id of new ping message
  */
-uint8_t ping(struct command_writer *writer);
+uint8_t send_ping(struct command_writer *writer);
 
 #endif
