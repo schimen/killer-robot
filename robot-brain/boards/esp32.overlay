@@ -1,0 +1,112 @@
+#include <zephyr/dt-bindings/pwm/pwm.h>
+#include <dt-bindings/pinctrl/esp32-pinctrl.h>
+
+/ {
+	aliases {
+		led0 = &led0;
+		a1 = &pwmA1;
+		a2 = &pwmA2;
+		b1 = &pwmB1;
+		b2 = &pwmB2;
+		weapon = &pwm1;
+		hc12 = &uart2;
+		hc12set = &hc12set;
+		nfault = &nfault;
+		nsleep = &nsleep;
+	};
+	pwmpins {
+		compatible = "pwm-pins";
+		pwm1: pwm1_gpio19 {
+			label = "PWM1";
+			pwms = <&ledc0 1 1000 PWM_POLARITY_NORMAL>;
+		};
+		pwm2: pwm2_gpio_gpio21 {
+			label = "PWM2";
+			pwms = <&ledc0 2 1000 PWM_POLARITY_NORMAL>;
+		};
+		pwmA1: pwm_a1_gpio22 {
+			label = "A1";
+			pwms = <&ledc0 3 1000 PWM_POLARITY_NORMAL>;
+		};
+		pwmA2: pwm_a2_gpio23 {
+			label = "A1";
+			pwms = <&ledc0 4 1000 PWM_POLARITY_NORMAL>;
+		};
+		pwmB1: pwm_b1_gpio32 {
+			label = "A1";
+			pwms = <&ledc0 5 1000 PWM_POLARITY_NORMAL>;
+		};
+		pwmB2: pwm_b2_gpio33 {
+			label = "A1";
+			pwms = <&ledc0 6 1000 PWM_POLARITY_NORMAL>;
+		};
+	};
+	gpiopins {
+		compatible = "gpio-pins";
+    	led0: led0 {
+			label = "Led";
+            gpios = <&gpio0 4 GPIO_ACTIVE_HIGH>;
+        };
+        hc12set: hc12_set {
+			label = "HC12 set";
+            gpios = <&gpio0 18 GPIO_ACTIVE_HIGH>;
+        };
+		nfault: nfault {
+			label = "nFAULT";
+            gpios = <&gpio0 34 GPIO_ACTIVE_HIGH>;
+        };
+		nsleep: nsleep {
+			label = "nSLEEP";
+            gpios = <&gpio0 35 GPIO_ACTIVE_HIGH>;
+        };
+    };
+};
+
+&pinctrl {
+	ledc0_custom: ledc0_custom {
+		group1 {
+			pinmux = <LEDC_CH1_GPIO19>, <LEDC_CH2_GPIO21>, <LEDC_CH3_GPIO22>,
+					 <LEDC_CH4_GPIO23>, <LEDC_CH5_GPIO32>, <LEDC_CH6_GPIO33>;
+			output-enable;
+		};
+	};
+};
+
+&ledc0 {
+	pinctrl-0 = <&ledc0_custom>;
+	pinctrl-names = "default";
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+	channel1@1 {
+		reg = <0x1>;
+		timer = <0>;
+	};
+	channel2@2 {
+		reg = <0x2>;
+		timer = <0>;
+	};
+	channel3@3 {
+		reg = <0x3>;
+		timer = <0>;
+	};
+	channel4@4 {
+		reg = <0x4>;
+		timer = <0>;
+	};
+	channel5@5 {
+		reg = <0x5>;
+		timer = <0>;
+	};
+	channel6@6 {
+		reg = <0x6>;
+		timer = <0>;
+	};
+};
+
+&uart2 {
+	status = "okay";
+	current-speed = <115200>;
+	pinctrl-0 = <&uart2_default>;
+	pinctrl-names = "default";
+};
