@@ -31,6 +31,12 @@ fp-info-cache
 # Build folders
 build/
 
+# Local tests
+tests/
+
+# Gerber files
+**/gerber*
+
 # Nix stuff
 shell.nix
 
