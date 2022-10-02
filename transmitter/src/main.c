@@ -1,10 +1,13 @@
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/uart.h>
-#include <zephyr/usb/usb_device.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/arch_interface.h>
+
+#ifdef CONFIG_USB_DEVICE_STACK // Include usb if available
+#include <zephyr/usb/usb_device.h>
+#endif
 
 #include "command.h"
 #include "uart_command.h"
@@ -30,8 +33,8 @@ K_THREAD_STACK_ARRAY_DEFINE(stacks, NUM_THREADS, STACK_SIZE);
 static struct k_thread threads[NUM_THREADS];
 
 // leds
-const struct gpio_dt_spec green_led = GPIO_DT_SPEC_GET(DT_NODELABEL(greenled), gpios);
-const struct gpio_dt_spec red_led  = GPIO_DT_SPEC_GET(DT_NODELABEL(redled), gpios);
+const struct gpio_dt_spec green_led = GPIO_DT_SPEC_GET(DT_ALIAS(greenled), gpios);
+const struct gpio_dt_spec red_led  = GPIO_DT_SPEC_GET(DT_ALIAS(redled), gpios);
 
 /**
  * @brief Initialize leds
@@ -142,8 +145,9 @@ void thread_callback(void *p1, void *p2, void *p3) {
 void main(void) {
     // init
     led_init();
-    // Enable usb
+    #ifdef CONFIG_USB_DEVICE_STACK // Enable usb if available
     usb_enable(NULL);
+    #endif
     // Initialize serial interfaces
     serial_init(&hc12_iface, &hc12_writer, hc12_device, &hc12_set);
     serial_init(&usb_iface, &usb_writer, usb_device, NULL);

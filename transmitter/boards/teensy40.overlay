@@ -5,7 +5,6 @@
         hc12 = &lpuart2;
         hc12set = &hc12_set;
         usb = &cdc_acm_uart0;
-
      };
     
     pins {
