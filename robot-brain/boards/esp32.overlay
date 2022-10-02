@@ -15,7 +15,7 @@
 		nsleep = &nsleep;
 	};
 	pwmpins {
-		compatible = "pwm-pins";
+		compatible = "pwm-leds";
 		pwm1: pwm1_gpio19 {
 			label = "PWM1";
 			pwms = <&ledc0 1 1000 PWM_POLARITY_NORMAL>;
@@ -42,7 +42,7 @@
 		};
 	};
 	gpiopins {
-		compatible = "gpio-pins";
+		compatible = "gpio-leds";
     	led0: led0 {
 			label = "Led";
             gpios = <&gpio0 4 GPIO_ACTIVE_HIGH>;
