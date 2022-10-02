@@ -1,5 +1,3 @@
-#ifdef CONFIG_BT // Do not compile if BT not enabled
-
 #include "gatt_command.h"
 
 #define BT_UUID_CUSTOM_SERVICE_VAL BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef0)
@@ -81,5 +79,3 @@ BT_GATT_SERVICE_DEFINE(command,
 		read_command, write_command, &command_value
 	),
 );
-
-#endif

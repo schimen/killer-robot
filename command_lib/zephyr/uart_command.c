@@ -1,6 +1,3 @@
-
-#ifdef CONFIG_SERIAL // Do not compile if serial not enabled
-
 #include "uart_command.h"
 
 void serial_init(
@@ -137,5 +134,3 @@ void receive_command_uart(const struct device *dev, void *user_data) {
         }
     }
 }
-
-#endif

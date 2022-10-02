@@ -1,2 +1,8 @@
 config COMMAND_LIB
 	bool "Use command lib in project"
+
+config COMMAND_UART
+	bool "Use command lib with uart"
+
+config COMMAND_GATT
+	bool "Use command lib with gatt"
