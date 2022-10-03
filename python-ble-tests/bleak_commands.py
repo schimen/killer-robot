@@ -7,7 +7,10 @@ CUSTOM_SERVICE_UUID =   "12345678-1234-5678-1234-56789abcdef0"
 COMMAND_WRITE_UUID =    "12345678-1234-5678-1234-56789abcdef1"
 
 def callback(_, data):
-    print(f'Notification: {[*data]}')
+    head, value = data
+    key = (0xE0 & head) >> 5
+    address = 0x07 & head
+    print(f'Received command {key} (id: {address}) value: {value}')
 
 async def write_command(client, key, value):
     if write_command.id >= 32:
