@@ -14,6 +14,14 @@
 static uint8_t command_value[COMMAND_LEN];
 
 /**
+ * @brief Function for notifying commands over BLE GATT
+ * 
+ * @param command Command that will be notified
+ * @return int Return 0 if succesfull and negative value on error
+ */
+int send_command_gatt(struct command_data command);
+
+/**
  * @brief Function for initializing Bluetooth and starting command service
  * 
  */

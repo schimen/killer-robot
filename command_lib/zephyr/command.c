@@ -44,16 +44,29 @@ int get_command(struct command_data* command) {
     return k_msgq_get(&incoming_commands, command, K_FOREVER);
 }
 
+void send_command(struct command_data command) {
+    if (command.writer == NULL) {
+        printk("No writer for this interface");
+        return;
+    }
+    if (command.writer->send_command_func) {
+        (command.writer->send_command_func)(command);
+    }
+    else {
+        printk("No function for this writer\n");
+    }
+}
+
 void send_ack(struct command_data command, uint8_t receive_time) {
     command.key = ack_command;
     command.value = receive_time;
-    (command.writer->send_command_func)(command);
+    send_command(command);
 }
 
 void send_error(struct command_data command, uint8_t error_code) {
     command.key = error_command;
     command.value = error_code;
-    (command.writer->send_command_func)(command);
+    send_command(command);
 }
 
 uint8_t send_ping(struct command_writer *writer) {
@@ -61,6 +74,6 @@ uint8_t send_ping(struct command_writer *writer) {
     command.key = ping_command;
     command.id = get_message_id();
     command.value = 0;
-    (*writer->send_command_func)(command);
+    send_command(command);
     return command.id;
 }

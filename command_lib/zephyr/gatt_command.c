@@ -1,12 +1,34 @@
 #include "gatt_command.h"
 
 #define BT_UUID_CUSTOM_SERVICE_VAL BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef0)
+
+
+struct command_writer default_gatt_writer = {
+	.iface = NULL,
+	.send_command_func = &send_command_gatt
+};
+
 static struct bt_uuid_128 command_uuid = BT_UUID_INIT_128(
 	BT_UUID_CUSTOM_SERVICE_VAL
 );
 static struct bt_uuid_128 command_value_uuid = BT_UUID_INIT_128(
 	BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef1)
 );
+
+int send_command_gatt(struct command_data command) {
+	const struct bt_gatt_attr *attr = command.writer->iface;
+	int err;
+	if (attr) { // Send command if attribute exists
+		uint8_t head = (command.key << 5) | (command.id & 0x07);
+		uint8_t data[COMMAND_LEN] = { head, command.value };
+		// Notify new command
+		err = bt_gatt_notify(NULL, attr, &data, COMMAND_LEN);
+	}
+	else { // Return error if attr is NULL
+		err = -1;
+	}
+	return err;
+}
 
 ssize_t write_command(
 	struct bt_conn *conn,
@@ -33,6 +55,7 @@ ssize_t write_command(
 	command.key = ((head & 0xE0) >> 5); // read the 3 MSB from head
 	command.id = head & 0x1F;           // read the 5 LSB from head
 	command.value = value[1];
+	command.writer = &default_gatt_writer;
 	add_command(command);
 
 	return len;
@@ -70,12 +93,24 @@ int peripheral_init() {
 	return 0;
 }
 
+static void subscribe_attr_cb(const struct bt_gatt_attr *attr, uint16_t value)
+{
+	// If chracterisitc is subscribed to, save as default attr
+	if (value == BT_GATT_CCC_NOTIFY) {
+		default_gatt_writer.iface = attr;
+	}
+}
+
 BT_GATT_SERVICE_DEFINE(command,
 	BT_GATT_PRIMARY_SERVICE(&command_uuid),
 	BT_GATT_CHARACTERISTIC(
 		&command_value_uuid.uuid,
-		BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE | BT_GATT_CHRC_NOTIFY, 
+		BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE | BT_GATT_CHRC_NOTIFY | BT_GATT_CHRC_INDICATE, 
 		BT_GATT_PERM_WRITE | BT_GATT_PERM_READ,
 		read_command, write_command, &command_value
+	),
+	BT_GATT_CCC(
+		subscribe_attr_cb,
+		BT_GATT_PERM_READ | BT_GATT_PERM_WRITE
 	),
 );
