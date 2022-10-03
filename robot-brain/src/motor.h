@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <zephyr/drivers/pwm.h>
 
-void set_motor_speed(const struct pwm_dt_spec *en1, const struct pwm_dt_spec *en2, int8_t speed);
+int set_motor_speed(const struct pwm_dt_spec *en1, const struct pwm_dt_spec *en2, uint8_t speed_u);
 
-void set_weapon_speed(const struct pwm_dt_spec *weapon_pin, int8_t speed);
+int set_weapon_speed(const struct pwm_dt_spec *weapon_pin, uint8_t speed_u);
 
 #endif
