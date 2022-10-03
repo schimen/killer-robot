@@ -7,7 +7,10 @@ CUSTOM_SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0"
 COMMAND_WRITE_UUID =    "12345678-1234-5678-1234-56789abcdef1"
 
 def callback(_, data):
-    print(f'Notification: {[*data]}')
+    head, value = data
+    key = (0xE0 & head) >> 5
+    address = 0x07 & head
+    print(f'Received command {key} (id: {address}) value: {value}')
 
 async def write_command(client, key, value):
     head = 0xFF & ((key << 5) | write_command.id)
@@ -23,13 +26,13 @@ async def connect(address):
     async with BleakClient(address) as client:
         # Start notification
         print('Start notification')
-        #await client.start_notify(COMMAND_WRITE_UUID, callback)
+        await client.start_notify(COMMAND_WRITE_UUID, callback)
 
         # Get model number
         model_number = await client.read_gatt_char(MODEL_NBR_UUID)
         print(f'Model Number: {"".join(map(chr, model_number))}')
 
-        n_tests = 3
+        n_tests = 7
         for i in range(n_tests):
             address = i
             value = 255 - i
