@@ -2,17 +2,57 @@
 #include <zephyr/sys/printk.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/pwm.h>
+#include <zephyr/drivers/gpio.h>
 
 #include "gatt_command.h"
 #include "motor.h"
 
+const struct gpio_dt_spec led0 = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 const struct pwm_dt_spec a1 = PWM_DT_SPEC_GET(DT_ALIAS(a1));
 const struct pwm_dt_spec a2 = PWM_DT_SPEC_GET(DT_ALIAS(a2));
 const struct pwm_dt_spec b1 = PWM_DT_SPEC_GET(DT_ALIAS(b1));
 const struct pwm_dt_spec b2 = PWM_DT_SPEC_GET(DT_ALIAS(b2));
 const struct pwm_dt_spec weapon = PWM_DT_SPEC_GET(DT_ALIAS(weapon));
 
+// Create workthread
+#define WORKTHREAD_SIZE 512
+#define WORKERTHREAD_PRIORITY 5
+K_THREAD_STACK_DEFINE(workthread_area, WORKTHREAD_SIZE);
+struct k_work_q work_q;
+
+/**
+ * @brief Blink led0
+ */
+void blink() {
+    gpio_pin_set(led0.port, led0.pin, 1);
+    k_msleep(50);
+    gpio_pin_set(led0.port, led0.pin, 0);
+}
+
+// Define blink worker
+K_WORK_DEFINE(blink_worker, blink);
+
+/**
+ * @brief Blink led0 in workthread
+ * 
+ */
+void blink_wt() {
+    k_work_submit(&blink_worker);
+}
+
 void main(void) {
+    // Init and start workqueue
+    k_work_queue_init(&work_q);
+    k_work_queue_start(&work_q, workthread_area, K_THREAD_STACK_SIZEOF(workthread_area), WORKTHREAD_SIZE, NULL);
+
+    // Init led0
+    if (gpio_pin_configure_dt(&led0, GPIO_OUTPUT_INACTIVE)) {
+        printk("No led0 configured");
+    }
+    else  {
+        blink_wt(&led0);
+    }
+    
     // Start bluetooth service
     if (peripheral_init()) {
         printk("Could not init ble peripheral\n");
@@ -24,6 +64,7 @@ void main(void) {
     struct command_data command;
     while (get_command(&command) == 0) {
         printk("Key: %d, id: %d, value: %d\n", command.key, command.id, command.value);
+        blink_wt();
         switch (command.key) {
             case error_command: // an error ocurred!
                 // acknowledge command, even though an error occurred
