@@ -20,15 +20,20 @@ int32_t convert_speed(uint8_t speed_u) {
 
 int set_motor_speed(const struct pwm_dt_spec *en1, const struct pwm_dt_spec *en2, uint8_t speed_u) {
     int32_t speed = convert_speed(speed_u);
-    uint32_t pulse = abs(speed)*(MOTOR_PERIOD/100);
+    uint32_t pulse;
     int err1, err2;
-    if (speed > 0) {
-        printk("Set motor1 with %d duty\n", abs(speed));
+    if (speed == 0) {
+        err1 = pwm_set_dt(en1, MOTOR_PERIOD, 0);
+        err2 = pwm_set_dt(en2, MOTOR_PERIOD, 0);
+    }
+    else if (speed > 0) {
+        pulse = speed*(MOTOR_PERIOD/100);
         err1 = pwm_set_dt(en1, MOTOR_PERIOD, pulse);
         err2 = pwm_set_dt(en2, MOTOR_PERIOD, 0);
     }
     else {
-        printk("Set motor2 with %d duty\n", abs(speed));
+        speed = -1*speed;
+        pulse = speed*(MOTOR_PERIOD/100);
         err1 = pwm_set_dt(en1, MOTOR_PERIOD, 0);
         err2 = pwm_set_dt(en2, MOTOR_PERIOD, pulse);
     }
@@ -37,9 +42,7 @@ int set_motor_speed(const struct pwm_dt_spec *en1, const struct pwm_dt_spec *en2
 
 int set_weapon_speed(const struct pwm_dt_spec *weapon_pin, uint8_t speed_u) {
     int32_t speed = convert_speed(speed_u);
-    printk("Set weapon with duty %d\n", speed);
     uint32_t pulse_offset = speed*(WEAPON_PULSE_RANGE/100);
     uint32_t pulse = WEAPON_PULSE_MID + pulse_offset;
-    printk("Speed: %d, offset: %d, pulse: %d\n", speed, pulse_offset, pulse);
     return pwm_set_dt(weapon_pin, WEAPON_PERIOD, pulse);
 }
