@@ -61,37 +61,22 @@ class Communication:
     def get_interface(self):
         if len(self.interfaces) < 1:
             return None
-        # Try to get first available interface
-        available_intefaces = tuple(filter(
-            lambda item: not item[1][1], 
-            self.interfaces.items()
-        ))
-        # Return highest priority available interface
-        if len(available_intefaces) > 0:
-            return available_intefaces[0][0]
-        # Return highest priority interface if none are available
-        else:
-            return self.interfaces[0][0]
+
+        return tuple(self.interfaces.items())[0][0]
 
     def add_interface(self, interface, priority):
         # Save interface object and a corresponding priority and busy flag
-        self.interfaces[interface] = [priority, False]
+        self.interfaces[interface] = priority
         # Sort interfaces by priority
         sorted_iface_items = sorted(
             self.interfaces.items(), 
-            key=lambda item: item[1][0]
+            key=lambda item: item[1]
         )
         self.interfaces = dict(sorted_iface_items)
         
     def remove_interface(self, interface):
         if interface in self.interfaces:
             del self.interfaces[interface]
-
-    def set_interface_busy(self, interface):
-        self.interfaces[interface][1] = True
-
-    def set_interface_available(self, interface):
-        self.interfaces[interface][1] = False
 
     def get_message_id(self):
         self.id += 1
@@ -164,8 +149,9 @@ class Communication:
                         except EOFError:
                             print('Client is disconnected')    
                             if self.bt_disconnect_cb:
-                                print('Run disconnect cb')
                                 self.bt_disconnect_cb()
+
+                            break
                 else:
                     print(f'{printable_message} (bluetooth not connected)')
             else:
@@ -221,9 +207,10 @@ class Communication:
             else:
                 print('Client is already disconnected')
 
-        self.ble_client = None
         if self.bt_disconnect_cb and run_callback:
             self.bt_disconnect_cb()
+        
+        self.ble_client = None
 
     async def gatt_send(self, data):
         data_bytes = bytearray(data)
