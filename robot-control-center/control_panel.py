@@ -201,7 +201,7 @@ class BluetoothOptions(tk.Frame):
 
         # Settings for ble device
         self.device_entry = create_option_entry(
-            self, 'BLE device name', (1, 0), 'gatt-test'
+            self, 'BLE device name', (1, 0), 'rupert'
         )
         self.open_button = tk.Button(
             self, text = 'Connect', command = self.bt_connect
@@ -219,6 +219,10 @@ class BluetoothOptions(tk.Frame):
         print('Connected')
 
     def bt_connect(self):
+        # Unfocus entries after pressing connect button
+        control_panel.focus()
+
+        # Disconnect if already connected
         if comm.ble_client:
             if comm.ble_client.is_connected:
                 print('Try to disconnect')
