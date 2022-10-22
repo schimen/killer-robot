@@ -38,39 +38,32 @@ ssize_t write_command(
 	uint16_t offset,
 	uint8_t flags
 ) {
-	// Pointer used to read values written to service
-	uint8_t *value = attr->user_data;
 
 	// Error if invalid offset
-	if (offset + len > COMMAND_LEN) {
+	// (length and offset must make a even number)
+	if ((offset + len) % 2 != 0) {
 		return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
 	}
 
+	// Pointer used to read values written to service
+	uint8_t *value = attr->user_data;
 	// Copy buffer to value
 	memcpy(value + offset, buf, len);
 
-	// Create command data from value
-	uint8_t head = value[0];
+	// Initialize head and command variables
+	uint8_t head;
 	struct command_data command;
-	command.key = ((head & 0xE0) >> 5); // read the 3 MSB from head
-	command.id = head & 0x1F;           // read the 5 LSB from head
-	command.value = value[1];
 	command.writer = &default_gatt_writer;
-	add_command(command);
-
+	// Loop through all new messages (each message is 2 bytes)
+	for (uint16_t i = 0; i < len; i += 2) {
+		// Create command data from value
+		head = value[i];
+		command.key = ((head & 0xE0) >> 5); // read the 3 MSB from head
+		command.id = head & 0x1F;           // read the 5 LSB from head
+		command.value = value[i+1];
+		add_command(command);
+	}
 	return len;
-}
-
-static ssize_t read_command(
-	struct bt_conn *conn,
-	const struct bt_gatt_attr *attr,
-	void *buf,
-	uint16_t len,
-	uint16_t offset
-) {
-	const char *value = attr->user_data;
-	return bt_gatt_attr_read(conn, attr, buf, len, offset, value,
-				 strlen(value));
 }
 
 static const struct bt_data ad[] = {
@@ -97,7 +90,7 @@ static void subscribe_attr_cb(const struct bt_gatt_attr *attr, uint16_t value)
 {
 	// If chracterisitc is subscribed to, save as default attr
 	if (value == BT_GATT_CCC_NOTIFY) {
-		default_gatt_writer.iface = attr;
+		default_gatt_writer.iface = (void *)attr;
 	}
 }
 
@@ -105,12 +98,12 @@ BT_GATT_SERVICE_DEFINE(command,
 	BT_GATT_PRIMARY_SERVICE(&command_uuid),
 	BT_GATT_CHARACTERISTIC(
 		&command_value_uuid.uuid,
-		BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE | BT_GATT_CHRC_NOTIFY | BT_GATT_CHRC_INDICATE, 
-		BT_GATT_PERM_WRITE | BT_GATT_PERM_READ,
-		read_command, write_command, &command_value
+		BT_GATT_CHRC_WRITE | BT_GATT_CHRC_NOTIFY, 
+		BT_GATT_PERM_WRITE,
+		NULL, write_command, &command_value
 	),
 	BT_GATT_CCC(
 		subscribe_attr_cb,
-		BT_GATT_PERM_READ | BT_GATT_PERM_WRITE
+		BT_GATT_PERM_WRITE
 	),
 );
