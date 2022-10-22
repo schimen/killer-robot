@@ -29,20 +29,34 @@ async def connect(address):
         while True:
             command = input('Command: ')
             value = input('Value: ')
-            if not command.isdigit or not value.isdigit:
-                print(f'Command "{command}" or value "{value}" is not numerical')
-                continue
-
-            await write_command(client, int(command), int(value))
+            if not command.isdigit() or not value.isdigit():
+                if any(
+                    (
+                        'q' in command.lower(), 
+                        'q' in value.lower(), 
+                        'exit' in command.lower(), 
+                        'exit' in value.lower()
+                    )
+                ):
+                    print('Exit program')
+                    break
+                else:
+                    print(f'Command "{command}" or value "{value}" is not numerical')
+            else:
+                await write_command(client, int(command), int(value))
 
 async def main():
-    devices = await BleakScanner.discover()
-    for d in devices:
-        if 'gatt-test' in d.name.lower():
-            print(f'Found device: {d.name} ({d.address})')
-            await connect(d.address)
-            return
-
-    print('Found no relevant devices')
+    print("Script for sending commands to rupert. Type `exit` or `q` to quit")
+    correct_device = lambda d, _: 'gatt-test' in d.name.lower()
+    device = await BleakScanner.find_device_by_filter(
+        correct_device,
+        timeout=5
+    )
+    if device:
+        print(f'Found device: {device.name} ({device.address})')
+        await connect(device.address)
+    
+    else:
+        print('Found no relevant devices')
 
 asyncio.run(main())

@@ -7,17 +7,20 @@ CUSTOM_SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0"
 COMMAND_WRITE_UUID =    "12345678-1234-5678-1234-56789abcdef1"
 
 def callback(_, data):
-    head, value = data
-    key = (0xE0 & head) >> 5
-    address = 0x07 & head
-    print(f'Received command {key} (id: {address}) value: {value}')
+    if len(data) == 2:
+        head, value = data
+        key = (0xE0 & head) >> 5
+        address = 0x07 & head
+        print(f'Received command {key} (id: {address}) value: {value}')
+    else:
+        print(f'Received data {data}')
+
 
 async def write_command(client, key, value):
     head = 0xFF & ((key << 5) | write_command.id)
     data = bytearray([head, value])
     print(f'writing {write_command.id} value {value}')
     await client.write_gatt_char(COMMAND_WRITE_UUID, data)
-    print(f'wrote {write_command.id}: value {value}')
     write_command.id += 1
 
 write_command.id = 0    
@@ -29,8 +32,9 @@ async def connect(address):
         await client.start_notify(COMMAND_WRITE_UUID, callback)
 
         # Get model number
+        start = time()
         model_number = await client.read_gatt_char(MODEL_NBR_UUID)
-        print(f'Model Number: {"".join(map(chr, model_number))}')
+        print(f'Got model number: {"".join(map(chr, model_number))} in {(time()-start)*1000} ms')
 
         n_tests = 7
         for i in range(n_tests):
@@ -46,18 +50,17 @@ async def connect(address):
             start = time()
             await client.write_gatt_char(COMMAND_WRITE_UUID, data)
             print(f'Wrote value in {(time()-start)*1000} ms')
-            
-        # Wait a second before disconnecting
-        await asyncio.sleep(1)
 
 async def main():
-    devices = await BleakScanner.discover()
-    for d in devices:
-        if 'gatt-test' in d.name.lower():
-            print(f'Found device: {d.name} ({d.address})')
-            await connect(d.address)
-            return
-
-    print('Found no relevant devices')
+    correct_device = lambda d, _: 'gatt-test' in d.name.lower()
+    device = await BleakScanner.find_device_by_filter(
+        correct_device,
+        timeout=5
+    )
+    if device:
+        print(f'Found device: {device.name} ({device.address})')
+        await connect(device.address)
+    else:
+        print('Found no relevant devices')
 
 asyncio.run(main())
