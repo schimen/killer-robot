@@ -2,34 +2,22 @@
 Control panel for killer robot
 Made by Simen
 """
-
-from os                      import system
-from sys                     import platform
-from serial                  import Serial
-from serial.serialutil       import SerialException
-from serial.tools.list_ports import comports
-from queue import Queue
+from os import system
+from sys import platform
 import threading
 import tkinter as tk
+from tkinter import ttk
+import atexit
+from time import sleep
 
-ERROR_COMMAND             = 0
-ACK_COMMAND               = 1
-PING_COMMAND              = 2
-LEFT_MOTOR_COMMAND        = 3
-RIGHT_MOTOR_COMMAND       = 4
-WEAPON_MOTOR_COMMAND      = 5
-DEFAULT_INTERFACE_COMMAND = 6
+from communication import \
+    list_comports, open_serial, read_serial_thread, init_serial, Communication
 
-ME   = 0
-USB  = 1
-HC05 = 2
-HC12 = 3
+# global sets for keeping an eye in the keys (little ugly solution, i know ;( )
+pressed_keys = set()
 
-ERROR_UNRECOGNIZED = 0
-ERROR_TIMEOUT      = 1
-ERROR_PARSE        = 2
-ERROR_VALUE        = 3
-
+# Global object for sending messages
+comm = Communication()
 
 class windows(tk.Tk):
     def __init__(self, *args, **kwargs):
@@ -46,12 +34,12 @@ class windows(tk.Tk):
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
  
-        for i, F in enumerate((ControlOptions, Controls, DeviceOptions)):
+        for i, F in enumerate((ControlOptions, Controls, DeviceOptions, BluetoothOptions)):
             frame = F(container, self)
             frame.grid(row=i, column=0)
 
 class Controls(tk.Frame):
-    def __init__(self, parent, controller):
+    def __init__(self, parent, _):
         tk.Frame.__init__(self, parent) 
         label = tk.Label(self, text="Controls")
 
@@ -75,47 +63,33 @@ class Controls(tk.Frame):
             new_button.grid(row=i, column=j)
             Controls.buttons[key] = new_button
 
-        # show last sent message
-        tk.Label(self, text='Last message:').grid(row=4, column=0)
-        Controls.last_message = tk.StringVar()
-        tk.Label(self, textvariable=Controls.last_message).grid(row=4, column=1)
-
 
 class ControlOptions(tk.Frame):
-    def __init__(self, parent, controller):
+    def __init__(self, parent, _):
         tk.Frame.__init__(self, parent) 
         label = tk.Label(self, text="Control Options")
         label.grid(row=0, column=1)
 
         # create entries for the options
-        self.forward_entry = create_option_entry( self
-                                                , 'Forward speed'
-                                                , (1, 0)
-                                                , self.forward_speed
-                                                )
-        self.backward_entry = create_option_entry( self
-                                                , 'Backward speed'
-                                                , (2, 0)
-                                                , self.backward_speed
-                                                )
-        self.turnrate_entry = create_option_entry( self
-                                                , 'Turning rate'
-                                                , (3, 0)
-                                                , self.turn_fraction
-                                                )
+        self.forward_entry = create_option_entry(
+            self, 'Forward speed', (1, 0), self.forward_speed
+        )
+        self.backward_entry = create_option_entry(
+            self, 'Backward speed', (2, 0), self.backward_speed
+        )
+        self.turnrate_entry = create_option_entry(
+            self, 'Turning rate', (3, 0), self.turn_fraction
+        )
         # setting alternate variables
-        self.set_shift_values = create_option_check( self
-                                                   , (4, 0)
-                                                   , 0
-                                                   , text = 'Set shift values'
-                                                   , onvalue = 1
-                                                   , offvalue = 0
-                                                   )
+        self.set_shift_values = create_option_check(
+            self, (4, 0), 0, 
+            text = 'Set shift values', onvalue = 1, offvalue = 0
+        )
         # update the variables
-        update_button = tk.Button( self
-                                 , text = 'Update values'
-                                 , command = self.update_values
-                                 )
+        update_button = tk.Button(
+            self, 
+            text = 'Update values', command = self.update_values
+        )
         update_button.grid(row=4, column=1)
 
     def update_values(self):
@@ -172,40 +146,30 @@ class ControlOptions(tk.Frame):
             ControlOptions.turn_fraction = turn_var
 
 class DeviceOptions(tk.Frame):
-    def __init__(self, parent, controller):
+    def __init__(self, parent, _):
         tk.Frame.__init__(self, parent)
         label = tk.Label(self, text="Device Options")
         label.grid(row=0, column = 1)
+        # Update the serial device list every 5 seconds
+        threading.Thread(target=self.update_port_list, args=(5,), daemon=True).start()
+        self.ser = init_serial()
+
         # Settings for transmitter device
-        
-        self.port_entry = create_option_entry( self
-                                             , 'Port'
-                                             , (1, 0)
-                                             , '/dev/ttyACM0'#list(port.device for port in comports())[0]
-                                             )
-        self.baud_entry = create_option_entry( self
-                                             , 'Baud rate'
-                                             , (2, 0)
-                                             , 9600
-                                             )
-        self.open_button = tk.Button( self
-                                    , text = 'Open serial'
-                                    , command = self.open_serial
-                                    )
+        self.port_combo = create_option_combo(
+            self, 'Port', (1, 0), []
+        )
+        self.baud_entry = create_option_entry(
+            self, 'Baud rate', (2, 0), 9600)
+        self.open_button = tk.Button(
+            self, text = 'Open serial', command = self.open_serial
+        )
         self.open_button.grid(row=3, column = 1)
 
-        self.radio_choice = create_option_check( self
-                                               , (4, 1)
-                                               , 1
-                                               , text = 'Use backup transmitter'
-                                               , onvalue = 0
-                                               , offvalue = 1
-                                               , command = self.choose_transmitter
-                                               )
-    
     def open_serial(self):
-        if ser.is_open: # close port if it is already open
-            ser.close()
+        # Close port if it is already open
+        if self.ser.is_open:
+            comm.remove_interface(self.ser)
+            self.ser.close()
             print('Closed serial')
             self.open_button.config(text='Open serial')
             return
@@ -213,33 +177,64 @@ class DeviceOptions(tk.Frame):
         # unfocus entries
         control_panel.focus()
 
-        # set up port
-        ser.port = self.port_entry.get()
+        # Open serial
         baudrate = self.baud_entry.get()
         if baudrate.isdigit():
-            ser.baudrate = int(baudrate)
-        
-        try: # try to open the port
-            ser.open()
-            print(f'Opening serial at:\nport: {ser.port}, baud: {ser.baudrate}')
-            # if the serial opened succesfully, the button will now close the serial
-            self.open_button.config(text=f'Close serial')
+            if open_serial(self.ser, self.port_combo.get(), int(baudrate)):
+                comm.add_interface(self.ser, 1)
+                # if the serial opened succesfully, the button will now close the serial
+                self.open_button.config(text=f'Close serial')
+                # print all serial communication to terminal
+                threading.Thread(target=read_serial_thread, args=(self.ser,), daemon=True).start()
 
-            # print all serial communication to terminal
-            threading.Thread(target=read_serial_thread, args=(ser,), daemon=True).start()
+    def update_port_list(self, interval):
+        while True:
+            self.device_list = list_comports()
+            self.port_combo.set(self.device_list)
+            sleep(interval)
 
-        except SerialException:
-            print(f'Could not open serial port at {ser.port} with {ser.baudrate}.')
-            print(f'Maybe try one of these: {list(port.device for port in comports())}')
+class BluetoothOptions(tk.Frame):
+    def __init__(self, parent, _):
+        tk.Frame.__init__(self, parent)
+        label = tk.Label(self, text="Bluetooth options")
+        label.grid(row=0, column = 1)
 
-    def choose_transmitter(self):
-        # send command to choose between main and backup transmitter
-        if self.radio_choice.get():
-            value = HC12
-        else:
-            value = HC05
+        # Settings for ble device
+        self.device_entry = create_option_entry(
+            self, 'BLE device name', (1, 0), 'gatt-test'
+        )
+        self.open_button = tk.Button(
+            self, text = 'Connect', command = self.bt_connect
+        )
+        self.open_button.grid(row=3, column = 1)
 
-        send_command(DEFAULT_INTERFACE_COMMAND, value)
+    def bt_disconnect_cb(self):
+        comm.remove_interface(comm.ble_client)
+        self.open_button.config(text='Connect')
+        print('Disconnected')
+
+    def bt_connect_cb(self):
+        comm.add_interface(comm.ble_client, 0)
+        self.open_button.config(text='Disconnect')
+        print('Connected')
+
+    def bt_connect(self):
+        if comm.ble_client:
+            if comm.ble_client.is_connected:
+                print('Try to disconnect')
+                threading.Thread(
+                    target=comm.ble_disconnect,
+                    daemon=True
+                ).start()
+                return
+
+        name = self.device_entry.get()
+        print(name)
+        threading.Thread(
+            target=comm.ble_connect,
+            args=(name, self.bt_connect_cb, self.bt_disconnect_cb),
+            daemon=True
+        ).start()
 
 def key_press(event):
     """ called when key is pressed """
@@ -297,10 +292,13 @@ def process_keys():
     else: # calculate speed based on keys pressed
         motor_a, motor_b = calculate_speed(keys)
 
-    # send the message :)
-    send_message(motor_a, motor_b)
+    motor_w = 127
 
-process_keys.last_pressed_keys = set() # static variable for keeping tab on prevous pressed keys
+    # send the message :)
+    comm.send_message(motor_a, motor_b, motor_w)
+
+# Static variable for keeping tab on prevous pressed keys
+process_keys.last_pressed_keys = set()
 
 def ghostpress_buttons(keys):
     # make the keys look like they are pressed
@@ -320,8 +318,8 @@ def calculate_speed(keys):
         backward_speed = ControlOptions.backward_speed
         turn_fraction  = ControlOptions.turn_fraction
 
-    motor_a = 127
-    motor_b = 127
+    motor_a = 0
+    motor_b = 0
 
     if 'w' in keys: # forward
         motor_a += forward_speed
@@ -330,73 +328,37 @@ def calculate_speed(keys):
         motor_a -= backward_speed
         motor_b -= backward_speed
     if 'd' in keys: # right
-        if motor_a != 127:
+        if motor_a != 0:
             motor_b -= int(turn_fraction*motor_a)
         else:
             motor_a += int(turn_fraction*forward_speed)
             motor_b -= int(turn_fraction*forward_speed)
     if 'a' in keys: # left
-        if motor_a != 127:
+        if motor_a != 0:
                 motor_a -= int(turn_fraction*motor_a)
         else: 
             motor_a -= int(turn_fraction*forward_speed)
             motor_b += int(turn_fraction*forward_speed)
 
-    def limit_motor(value):
-        # limit the motor value
-        min_motor = 0; max_motor = 255
-        if value <= min_motor:
-            return min_motor
-        elif value >= max_motor:
-            return max_motor
-        return value
+    return limit_motor(motor_a+127), limit_motor(motor_b+127)
 
-    return limit_motor(motor_a), limit_motor(motor_b)
+def limit_motor(value):
+    # limit the motor value
+    if     value <=   0: return   0
+    elif   value >= 255: return 255
+    return value
 
-def get_message_id():
-    get_message_id.id += 1
-    if get_message_id.id > 31:
-        get_message_id.id = 0
-    return get_message_id.id
-get_message_id.id = 0
-
-def send_message(motor_a, motor_b):
-    """ send message to transmitter """
-
-    # motor a
-    command_a = LEFT_MOTOR_COMMAND
-    # motor b
-    command_b = RIGHT_MOTOR_COMMAND
-
-    # check if message_a or message_b  are duplicates from earlier
-    duplicate_message_a = send_message.old_motor_a == motor_a
-    duplicate_message_b = send_message.old_motor_b == motor_b
-    if duplicate_message_a and duplicate_message_b:
-        return
-    # add message a
-    if not duplicate_message_a:
-        send_command(command_a, motor_a)
-        send_message.old_message_a = motor_a
-    # add message b
-    if not duplicate_message_b:
-        send_command(command_b, motor_b)
-        send_message.old_motor_b = motor_b
-
-    # set the `last_message` label in controls to the new message
-    Controls.last_message.set(f'left: {motor_a}, right: {motor_b}')
-    print_new_commands()
-
-# static variables for `send_message`, for keeping track on earlier messages
-send_message.old_motor_a = 127
-send_message.old_motor_b = 127
-
-def send_command(command, value):
-    message_id = get_message_id()
-    if ser.is_open:
-        head = command << 5 | message_id
-        ser.write(bytearray([ord(':'), head, value, ord(';')]))
-    else:
-        print(f'command: {command}, id: {message_id}, value: {value}')
+def create_option_combo(root, label, pos, start_value):
+    """
+    Template for comboboxes
+    """
+    row, column = pos
+    label = tk.Label(root, text=f'{label}:')
+    label.grid(row=row, column=column)
+    combo = ttk.Combobox(root, textvariable='Test')
+    combo['values'] = start_value
+    combo.grid(row=row, column=column+1)
+    return combo
 
 def create_option_entry(root, label, pos, start_value):
     """
@@ -416,91 +378,34 @@ def create_option_check(root, pos, start_value, **kwargs):
     Add Checkbutton settings in keyword arguments (**kwargs)
     """
     checkbutton_variable = tk.IntVar()
-    checkbutton_variable.set(1)
+    checkbutton_variable.set(start_value)
     transmitter_checkbutton = tk.Checkbutton(root, variable=checkbutton_variable, **kwargs)
     row, column = pos
     transmitter_checkbutton.grid(row=row,column=column)
     return checkbutton_variable
 
-def read_serial_thread(ser):
-    """
-    Function that continually reads serial information and prints to terminal
-    """
-    serial_buffer = b''
-    while ser.is_open:
-        try:
-            # add new characters to buffer
-            serial_buffer += ser.read()
-
-        except TypeError:
-            # serial was apparently closed
-            print('Stopped listening to serial')
-            return None
-
-        if b':' not in serial_buffer:
-            # reset serial_buffer if there is no command start
-            serial_buffer = b''
-
-        # command beginning and end is in buffer
-        if b':' in serial_buffer and b';' in serial_buffer:
-            while len(serial_buffer) > 0:
-                start = serial_buffer.find(b':')
-                end = serial_buffer.find(b';') + 1
-                if start >= end:
-                    print('received partial command, throw it away')
-                    serial_buffer = serial_buffer[start:]
-                elif end - start > 4:
-                    serial_buffer = serial_buffer[start+1:]
-                else:
-                    command_string = serial_buffer[start:end]
-                    if len(command_string) == 4:
-                        head = command_string[1]
-                        value = command_string[2]
-
-                    command = (head & 0xE0) >> 5
-                    message_id = head & 0x1F
-                    incoming_commands.put((command, message_id, value))
-
-                    # command finished, reset
-                    serial_buffer = serial_buffer[end:]
-
-def print_new_commands():
-    if not incoming_commands.empty():
-        for i in range(incoming_commands.qsize()):
-            print(f'new command: {incoming_commands.get()}')
+def xset_on():
+    system('xset r on')
 
 if __name__ == "__main__":
     # turn off key repeating, global os configuration (on linux)
     if platform == 'linux':
+        # Turn xset off for linux machines, and turn it on again on exit
         system('xset r off')
-
-    # global sets for keeping an eye in the keys (little ugly solution, i know ;( )
-    pressed_keys = set()
-
-    # create serial object
-    ser = Serial()
-
-    # queue for incoming commands
-    incoming_commands = Queue()
+        atexit.register(xset_on)
 
 
     # Variables for controlling the different speed values
-    ControlOptions.forward_speed  = 128
-    ControlOptions.backward_speed = 127
+    ControlOptions.forward_speed  = 100
+    ControlOptions.backward_speed = 100
     ControlOptions.turn_fraction  = 1
-    ControlOptions.forward_speed_alt  = 100
-    ControlOptions.backward_speed_alt = 100
+    ControlOptions.forward_speed_alt  = 75
+    ControlOptions.backward_speed_alt = 75
     ControlOptions.turn_fraction_alt  = 0.5
 
     # tkinter setup
     control_panel = windows()
     control_panel.bind("<KeyPress>",   key_press)
     control_panel.bind("<KeyRelease>", key_release)
+    # Run tkinter in a thread
     control_panel.mainloop()
-    
-    # turn on key repeating again (linux)
-    if platform == 'linux':
-        system('xset r on')
-    
-    # close serial
-    ser.close()

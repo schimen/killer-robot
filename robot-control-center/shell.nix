@@ -4,6 +4,7 @@
         (python39.withPackages(ps: with ps; [
             tkinter
             pyserial
+	    bleak
         ]))
     ];
 }
