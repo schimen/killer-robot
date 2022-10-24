@@ -8,15 +8,24 @@
 #include "motor.h"
 
 const struct gpio_dt_spec led0 = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
-const struct pwm_dt_spec a1 = PWM_DT_SPEC_GET(DT_ALIAS(a1));
-const struct pwm_dt_spec a2 = PWM_DT_SPEC_GET(DT_ALIAS(a2));
-const struct pwm_dt_spec b1 = PWM_DT_SPEC_GET(DT_ALIAS(b1));
-const struct pwm_dt_spec b2 = PWM_DT_SPEC_GET(DT_ALIAS(b2));
-const struct pwm_dt_spec weapon = PWM_DT_SPEC_GET(DT_ALIAS(weapon));
+
+struct motor_control motor_a = {
+    .en1=PWM_DT_SPEC_GET(DT_ALIAS(a1)),
+    .en2=PWM_DT_SPEC_GET(DT_ALIAS(a2)),
+};
+
+struct motor_control motor_b = {
+    .en1=PWM_DT_SPEC_GET(DT_ALIAS(b1)),
+    .en2=PWM_DT_SPEC_GET(DT_ALIAS(b2)),
+};
+
+struct motor_control weapon = {
+    .en1=PWM_DT_SPEC_GET(DT_ALIAS(weapon)),
+};
 
 // Create workthread
 #define WORKTHREAD_SIZE 512
-#define WORKERTHREAD_PRIORITY 5
+#define WORKTHREAD_PRIO 5
 K_THREAD_STACK_DEFINE(workthread_area, WORKTHREAD_SIZE);
 struct k_work_q work_q;
 
@@ -43,8 +52,9 @@ void blink_wt() {
 void main(void) {
     // Init and start workqueue
     k_work_queue_init(&work_q);
-    k_work_queue_start(&work_q, workthread_area, K_THREAD_STACK_SIZEOF(workthread_area), WORKTHREAD_SIZE, NULL);
-
+    k_work_queue_start(&work_q, workthread_area, WORKTHREAD_SIZE, WORKTHREAD_PRIO, NULL);
+    // Init motor control
+    motor_init(&motor_a, &motor_b, &weapon);
     // Init led0
     if (gpio_pin_configure_dt(&led0, GPIO_OUTPUT_INACTIVE)) {
         printk("No led0 configured");
@@ -80,17 +90,17 @@ void main(void) {
                 break;
 
             case left_motor_command:
-                set_motor_speed(&a1, &a2, command.value);
+                set_speed(&motor_a,  command.value);
                 send_ack(command, 0);
                 break;
 
             case right_motor_command:
-                set_motor_speed(&b1, &b2, command.value);
+                set_speed(&motor_b, command.value);
                 send_ack(command, 0);
                 break;
             
             case weapon_motor_command:
-                set_weapon_speed(&weapon, command.value);
+                set_speed(&weapon, command.value);
                 send_ack(command, 0);
                 break;
 
