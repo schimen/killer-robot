@@ -47,7 +47,7 @@ async def connect(address):
 
 async def main():
     print("Script for sending commands to rupert. Type `exit` or `q` to quit")
-    correct_device = lambda d, _: 'gatt-test' in d.name.lower()
+    correct_device = lambda d, _: 'rupert' in d.name.lower()
     device = await BleakScanner.find_device_by_filter(
         correct_device,
         timeout=5

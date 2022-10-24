@@ -52,7 +52,7 @@ async def connect(address):
             print(f'Wrote value in {(time()-start)*1000} ms')
 
 async def main():
-    correct_device = lambda d, _: 'gatt-test' in d.name.lower()
+    correct_device = lambda d, _: 'rupert' in d.name.lower()
     device = await BleakScanner.find_device_by_filter(
         correct_device,
         timeout=5
