@@ -11,7 +11,6 @@ import atexit
 from threading import Thread
 from queue import Queue
 import asyncio
-from time import time
 
 CUSTOM_SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0"
 COMMAND_WRITE_UUID  = "12345678-1234-5678-1234-56789abcdef1"
@@ -147,13 +146,16 @@ class Communication:
                         try:
                             self.event_loop.run_until_complete(self.gatt_send(data))
                         except EOFError:
-                            print('Client is disconnected')    
+                            print('Client is disconnected')  
                             if self.bt_disconnect_cb:
                                 self.bt_disconnect_cb()
 
                             break
+
                 else:
                     print(f'{printable_message} (bluetooth not connected)')
+                    if self.bt_disconnect_cb:
+                        self.bt_disconnect_cb()
             else:
                 print(f'{printable_message} (no interface)')
 
@@ -214,9 +216,7 @@ class Communication:
 
     async def gatt_send(self, data):
         data_bytes = bytearray(data)
-        start = time()
         await self.ble_client.write_gatt_char(COMMAND_WRITE_UUID, data_bytes)
-        print(f'Time used to send: {(time()-start)*1000} ms')
 
 async def find_device(name):
     correct_device = lambda d, _: name in d.name.lower()
