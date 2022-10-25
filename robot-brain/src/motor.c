@@ -78,12 +78,14 @@ int set_motor_speed(const struct pwm_dt_spec *en1, const struct pwm_dt_spec *en2
     }
     else if (speed > 0) {
         pulse = speed*(MOTOR_PERIOD/100);
+        if (pulse > MOTOR_PERIOD) { pulse = MOTOR_PERIOD; }
         err1 = pwm_set_dt(en1, MOTOR_PERIOD, pulse);
         err2 = pwm_set_dt(en2, MOTOR_PERIOD, 0);
     }
     else {
         speed = -1*speed;
         pulse = speed*(MOTOR_PERIOD/100);
+        if (pulse > MOTOR_PERIOD) { pulse = MOTOR_PERIOD; }
         err1 = pwm_set_dt(en1, MOTOR_PERIOD, 0);
         err2 = pwm_set_dt(en2, MOTOR_PERIOD, pulse);
     }
@@ -95,6 +97,7 @@ int set_weapon_speed(const struct pwm_dt_spec *weapon_pin, const struct pwm_dt_s
     int32_t speed = convert_speed(speed_u);
     uint32_t pulse_offset = speed*(WEAPON_PULSE_RANGE/100);
     uint32_t pulse = WEAPON_PULSE_MID + pulse_offset;
+    if (pulse > WEAPON_PERIOD) { pulse = WEAPON_PERIOD; }
     return pwm_set_dt(weapon_pin, WEAPON_PERIOD, pulse);
 }
 
