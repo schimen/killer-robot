@@ -53,8 +53,10 @@ void main(void) {
     // Init and start workqueue
     k_work_queue_init(&work_q);
     k_work_queue_start(&work_q, workthread_area, WORKTHREAD_SIZE, WORKTHREAD_PRIO, NULL);
+
     // Init motor control
     motor_init(&motor_a, &motor_b, &weapon);
+
     // Init led0
     if (gpio_pin_configure_dt(&led0, GPIO_OUTPUT_INACTIVE)) {
         printk("No led0 configured");
@@ -73,7 +75,6 @@ void main(void) {
     // Receive incoming commands
     struct command_data command;
     while (get_command(&command) == 0) {
-        printk("Key: %d, id: %d, value: %d\n", command.key, command.id, command.value);
         blink_wt();
         switch (command.key) {
             case error_command: // an error ocurred!
