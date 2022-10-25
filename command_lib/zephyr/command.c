@@ -14,9 +14,7 @@ uint8_t get_message_id() {
     return message_id;
 }
 
-void set_ack(uint8_t id) {
-    k_event_set(&ack_event, (1 << id));
-}
+void set_ack(uint8_t id) { k_event_set(&ack_event, (1 << id)); }
 
 int wait_for_ack(uint8_t id, int64_t *receive_time) {
     int64_t start_time = k_uptime_get();
@@ -33,14 +31,14 @@ int wait_for_ack(uint8_t id, int64_t *receive_time) {
 }
 
 void add_command(struct command_data command) {
-	// Add new command to incoming commands
-	while (k_msgq_put(&incoming_commands, &command, K_NO_WAIT) != 0) {
-		// message queue is full, purge and try again
-		k_msgq_purge(&incoming_commands);
-	}
+    // Add new command to incoming commands
+    while (k_msgq_put(&incoming_commands, &command, K_NO_WAIT) != 0) {
+        // message queue is full, purge and try again
+        k_msgq_purge(&incoming_commands);
+    }
 }
 
-int get_command(struct command_data* command) {
+int get_command(struct command_data *command) {
     return k_msgq_get(&incoming_commands, command, K_FOREVER);
 }
 
@@ -51,8 +49,7 @@ void send_command(struct command_data command) {
     }
     if (command.writer->send_command_func) {
         (command.writer->send_command_func)(command);
-    }
-    else {
+    } else {
         printk("No function for this writer\n");
     }
 }

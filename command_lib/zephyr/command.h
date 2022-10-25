@@ -57,9 +57,9 @@ struct command_data;
 
 struct command_writer {
     /* Pointer to function for sending command */
-	int (*send_command_func)(struct command_data);
+    int (*send_command_func)(struct command_data);
     /* Pointer to communication interface */
-    void* iface;
+    void *iface;
 };
 
 struct command_data {
@@ -82,32 +82,32 @@ uint8_t get_message_id();
 
 /**
  * @brief Set ack event when receiving answer
- * 
+ *
  * @param id Id of message that was received
  */
 void set_ack(uint8_t id);
 
 /**
  * @brief Wait for acknowledgment of id
- * 
+ *
  * @param id Id of message that are awaited
  * @param receive_time Pointer where receive time is saved
- * @return 0 if ack received, 1 if timeout 
+ * @return 0 if ack received, 1 if timeout
  */
 int wait_for_ack(uint8_t id, int64_t *receive_time);
 
 /**
  * @brief Add command to command queue
- * 
- * @param command 
+ *
+ * @param command
  */
 void add_command(struct command_data command);
 
 /**
  * @brief Get next command from the command queue
- * 
+ *
  * @param command Pointer to where command will be saved
- * 
+ *
  * @return 0 if command received, negative value if error
  */
 int get_command(struct command_data *command);

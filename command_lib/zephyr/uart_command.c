@@ -1,11 +1,8 @@
 #include "uart_command.h"
 
-void serial_init(
-    struct serial_interface *iface,
-    struct command_writer *writer,
-    const struct device *dev, 
-    const struct gpio_dt_spec *state_pin
-) {
+void serial_init(struct serial_interface *iface, struct command_writer *writer,
+                 const struct device *dev,
+                 const struct gpio_dt_spec *state_pin) {
     // Create iface object
     iface->dev = dev;
     iface->state_pin = state_pin;
@@ -22,7 +19,6 @@ void serial_init(
     uart_irq_callback_user_data_set(iface->dev, receive_command_uart, writer);
     uart_irq_rx_enable(iface->dev);
 }
-
 
 void uart_print(const struct device *dev, const char *format, ...) {
     va_list argptr;
@@ -47,7 +43,8 @@ void uart_print(const struct device *dev, const char *format, ...) {
  *
  * @return command
  */
-struct command_data parse_command_uart(struct command_writer *writer, unsigned char *command_string) {
+struct command_data parse_command_uart(struct command_writer *writer,
+                                       unsigned char *command_string) {
     struct command_data command;
     command.writer = writer;
 
@@ -62,8 +59,7 @@ struct command_data parse_command_uart(struct command_writer *writer, unsigned c
         command.key = key;
         command.id = id;
         command.value = command_string[2];
-    }
-    else {
+    } else {
         // error, everything is set to zero
         command.key = error_command;
         command.id = get_message_id();
@@ -114,7 +110,8 @@ void receive_command_uart(const struct device *dev, void *user_data) {
                 if (c == COMMAND_END &&
                     rx_buf->position == 3) { // command is finished
                     // send message to incoming queue
-                    struct command_data command = parse_command_uart(writer, rx_buf->buffer);
+                    struct command_data command =
+                        parse_command_uart(writer, rx_buf->buffer);
 
                     // send to queue for processing
                     add_command(command);

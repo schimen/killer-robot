@@ -6,10 +6,10 @@
 #ifndef UART_COMMAND_H
 #define UART_COMMAND_H
 
-#include <zephyr/drivers/uart.h>
-#include <zephyr/drivers/gpio.h>
-#include <zephyr/kernel.h>
 #include <string.h>
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/uart.h>
+#include <zephyr/kernel.h>
 
 #include "command.h"
 
@@ -41,19 +41,16 @@ struct serial_interface {
 
 /**
  * @brief Inititialize serial interface and command writer
- * 
+ *
  * @param iface Pointer to uninitialized serial_interface
  * @param writer Pointer to unitialized command_writer
  * @param dev Pointer to serial_device
  * @param state_pin Pointer to pin used for state in hc devices.
  * Set NULL if not used.
  */
-void serial_init(
-    struct serial_interface *iface,
-    struct command_writer *writer,
-    const struct device *dev, 
-    const struct gpio_dt_spec *state_pin
-);
+void serial_init(struct serial_interface *iface, struct command_writer *writer,
+                 const struct device *dev,
+                 const struct gpio_dt_spec *state_pin);
 
 /**
  * @brief Print string to uart device (using polling)
