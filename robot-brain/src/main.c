@@ -5,9 +5,19 @@
 #include <zephyr/sys/printk.h>
 
 #include "gatt_command.h"
+#include "uart_command.h"
 #include "motor.h"
 
+// GPIO structs
 const struct gpio_dt_spec led0 = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
+const struct gpio_dt_spec nsleep = GPIO_DT_SPEC_GET(DT_ALIAS(nsleep), gpios);
+struct gpio_callback sleep_callback;
+
+// Serial interface (HC12)
+struct serial_interface hc12_iface;
+struct command_writer hc12_writer;
+const struct gpio_dt_spec hc12_set = GPIO_DT_SPEC_GET(DT_ALIAS(hc12set), gpios);
+const struct device *hc12_device = DEVICE_DT_GET(DT_ALIAS(hc12));
 
 struct motor_control motor_a = {
     .en1 = PWM_DT_SPEC_GET(DT_ALIAS(a1)),
@@ -38,6 +48,23 @@ void blink() {
     gpio_pin_set(led0.port, led0.pin, 0);
 }
 
+/**
+ * @brief Callback for sleep-pin interrupt on sleep
+ */
+static void sleep_handler(const struct device *port, struct gpio_callback *cb, uint32_t pins)
+{
+    static bool currently_sleeping = false;
+    ARG_UNUSED(port); ARG_UNUSED(cb); ARG_UNUSED(pins);
+    if (currently_sleeping) {
+        printk("Wake interrupt");
+        currently_sleeping = false;
+    }
+    else {
+        printk("Sleep interrupt");
+        currently_sleeping = true;
+    }
+}
+
 // Define blink worker
 K_WORK_DEFINE(blink_worker, blink);
 
@@ -57,18 +84,23 @@ void main(void) {
     motor_init(&motor_a, &motor_b, &weapon);
 
     // Init led0
-    if (gpio_pin_configure_dt(&led0, GPIO_OUTPUT_INACTIVE)) {
-        printk("No led0 configured");
-    } else {
+    if (gpio_pin_configure_dt(&led0, GPIO_OUTPUT_INACTIVE) == 0) {
         blink_wt(&led0);
     }
 
-    // Start bluetooth service
-    if (peripheral_init()) {
-        printk("Could not init ble peripheral\n");
-        return;
+    // Init sleep and wake interrupt
+    if (gpio_pin_configure_dt(&nsleep, GPIO_INPUT) == 0) {
+        gpio_init_callback(&sleep_callback, sleep_handler, BIT(nsleep.pin));
+        if (gpio_add_callback(nsleep.port, &sleep_callback) == 0) {
+            gpio_pin_interrupt_configure_dt(&nsleep, GPIO_INT_EDGE_BOTH);
+        }
     }
-    printk("Bluetooth service started, waiting for commands\n");
+
+    // Initialize serial interface (HC12)
+    serial_init(&hc12_iface, &hc12_writer, hc12_device, &hc12_set);
+
+    // Start bluetooth service
+    peripheral_init();
 
     // Receive incoming commands
     struct command_data command;
