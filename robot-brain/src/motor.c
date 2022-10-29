@@ -68,7 +68,7 @@ int set_motor_speed(const struct pwm_dt_spec *en1,
         err1 = pwm_set_dt(en1, MOTOR_PERIOD, 0);
         err2 = pwm_set_dt(en2, MOTOR_PERIOD, 0);
     } else if (speed > 0) {
-        pulse = speed * (MOTOR_PERIOD / 100);
+        pulse = speed * ((MOTOR_PERIOD-1) / 100);
         if (pulse > MOTOR_PERIOD) {
             pulse = MOTOR_PERIOD;
         }
@@ -76,7 +76,7 @@ int set_motor_speed(const struct pwm_dt_spec *en1,
         err2 = pwm_set_dt(en2, MOTOR_PERIOD, 0);
     } else {
         speed = -1 * speed;
-        pulse = speed * (MOTOR_PERIOD / 100);
+        pulse = speed * ((MOTOR_PERIOD-1) / 100);
         if (pulse > MOTOR_PERIOD) {
             pulse = MOTOR_PERIOD;
         }
