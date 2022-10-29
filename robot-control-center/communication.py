@@ -2,7 +2,6 @@
 Module for communicating with robot, used by control panel.
 Made by Simen
 """
-from string import printable
 from serial                  import Serial
 from serial.serialutil       import SerialException
 from serial.tools.list_ports import comports
@@ -28,9 +27,6 @@ ERROR_TIMEOUT      = 1
 ERROR_PARSE        = 2
 ERROR_VALUE        = 3
 
-# queue for incoming commands
-incoming_commands = Queue()
-
 # Dictionary for interfaces
 interfaces = dict()
 
@@ -50,6 +46,12 @@ class Communication:
         # Start thread for sending commands
         Thread(
             target=self.send_commands,
+            daemon=True
+        ).start()
+
+        # Start thread for printing received commands
+        Thread(
+            target=self.print_new_commands,
             daemon=True
         ).start()
         
@@ -112,12 +114,11 @@ class Communication:
             self.add_command(command_w, motor_w)
             self.old_message[command_w] = motor_w
 
-        self.print_new_commands()
 
     def add_command(self, command, value):
         # Remove first item if queue is full
         if self.outgoing_commands.full():
-            print('remove command from queue')
+            print('Queue full, remove command oldest command')
             _, _ = self.outgoing_commands.get_nowait()
         
         self.outgoing_commands.put_nowait((command, value))
@@ -133,7 +134,7 @@ class Communication:
             # Send over serial
             if type(interface) == Serial:
                 if interface.is_open:
-                    interface.write(bytearray([ord(':'), head(command), value, ord(';')]))
+                    interface.write(bytearray([ord(':'), head(command), value, ord(';')]))                        
                 else: 
                     print(f'{printable_message} (serial not open)')
             
@@ -145,7 +146,7 @@ class Communication:
                         data.extend([head(command), value])
                         try:
                             self.event_loop.run_until_complete(self.gatt_send(data))
-                        except EOFError:
+                        except:
                             print('Client is disconnected')  
                             if self.bt_disconnect_cb:
                                 self.bt_disconnect_cb()
@@ -160,9 +161,51 @@ class Communication:
                 print(f'{printable_message} (no interface)')
 
     def print_new_commands(self):
-        if not self.incoming_commands.empty():
-            for i in range(self.incoming_commands.qsize()):
-                print(f'new command: {self.incoming_commands.get()}')
+        while True:
+            command, message_id, value = self.incoming_commands.get()
+            print(f'New incoming command: {command}, id: {message_id}, value: {value}')
+
+    def read_serial_thread(self, ser):
+        """
+        Function that continually reads serial information and prints to terminal
+        """
+        serial_buffer = b''
+        while ser.is_open:
+            try:
+                # add new characters to buffer
+                serial_buffer += ser.read()
+
+            except TypeError:
+                # serial was apparently closed
+                print('Stopped listening to serial')
+                return None
+
+            if b':' not in serial_buffer:
+                # reset serial_buffer if there is no command start
+                serial_buffer = b''
+
+            # command beginning and end is in buffer
+            if b':' in serial_buffer and b';' in serial_buffer:
+                while len(serial_buffer) > 0:
+                    start = serial_buffer.find(b':')
+                    end = serial_buffer.find(b';') + 1
+                    if start >= end:
+                        print('received partial command, throw it away')
+                        serial_buffer = serial_buffer[start:]
+                    elif end - start > 4:
+                        serial_buffer = serial_buffer[start+1:]
+                    else:
+                        command_string = serial_buffer[start:end]
+                        if len(command_string) == 4:
+                            head = command_string[1]
+                            value = command_string[2]
+
+                        command = (head & 0xE0) >> 5
+                        message_id = head & 0x1F
+                        self.incoming_commands.put((command, message_id, value))
+
+                        # command finished, reset
+                        serial_buffer = serial_buffer[end:]
 
     def bt_notification_cb(self, _, data):
         if len(data) != 2:
@@ -247,45 +290,3 @@ def open_serial(ser, port, baudrate):
         print(f'Could not open serial port at {ser.port} with {ser.baudrate}.')
         print(f'Maybe try one of these: {list_comports()}')
         return False
-
-def read_serial_thread(ser):
-    """
-    Function that continually reads serial information and prints to terminal
-    """
-    serial_buffer = b''
-    while ser.is_open:
-        try:
-            # add new characters to buffer
-            serial_buffer += ser.read()
-
-        except TypeError:
-            # serial was apparently closed
-            print('Stopped listening to serial')
-            return None
-
-        if b':' not in serial_buffer:
-            # reset serial_buffer if there is no command start
-            serial_buffer = b''
-
-        # command beginning and end is in buffer
-        if b':' in serial_buffer and b';' in serial_buffer:
-            while len(serial_buffer) > 0:
-                start = serial_buffer.find(b':')
-                end = serial_buffer.find(b';') + 1
-                if start >= end:
-                    print('received partial command, throw it away')
-                    serial_buffer = serial_buffer[start:]
-                elif end - start > 4:
-                    serial_buffer = serial_buffer[start+1:]
-                else:
-                    command_string = serial_buffer[start:end]
-                    if len(command_string) == 4:
-                        head = command_string[1]
-                        value = command_string[2]
-
-                    command = (head & 0xE0) >> 5
-                    message_id = head & 0x1F
-                    incoming_commands.put((command, message_id, value))
-
-                    # command finished, reset
-                    serial_buffer = serial_buffer[end:]

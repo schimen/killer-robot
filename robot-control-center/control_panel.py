@@ -11,7 +11,7 @@ import atexit
 from time import sleep
 
 from communication import \
-    list_comports, open_serial, read_serial_thread, init_serial, Communication
+    list_comports, open_serial, init_serial, Communication
 
 # global sets for keeping an eye in the keys (little ugly solution, i know ;( )
 pressed_keys = set()
@@ -159,7 +159,7 @@ class DeviceOptions(tk.Frame):
             self, 'Port', (1, 0), []
         )
         self.baud_entry = create_option_entry(
-            self, 'Baud rate', (2, 0), 9600)
+            self, 'Baud rate', (2, 0), 115200)
         self.open_button = tk.Button(
             self, text = 'Open serial', command = self.open_serial
         )
@@ -185,7 +185,7 @@ class DeviceOptions(tk.Frame):
                 # if the serial opened succesfully, the button will now close the serial
                 self.open_button.config(text=f'Close serial')
                 # print all serial communication to terminal
-                threading.Thread(target=read_serial_thread, args=(self.ser,), daemon=True).start()
+                threading.Thread(target=comm.read_serial_thread, args=(self.ser,), daemon=True).start()
 
     def update_port_list(self, interval):
         while True:
