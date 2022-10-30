@@ -10,7 +10,7 @@
 		b2 = &pwmB2;
 		weapon = &pwm1;
 		hc12 = &uart2;
-		hc12set = &hc12set;
+		hc12-set = &hc12_set;
 		nfault = &nfault;
 		nsleep = &nsleep;
 	};
@@ -29,15 +29,15 @@
 			pwms = <&ledc0 3 1000 PWM_POLARITY_NORMAL>;
 		};
 		pwmA2: pwm_a2_gpio23 {
-			label = "A1";
+			label = "A2";
 			pwms = <&ledc0 4 1000 PWM_POLARITY_NORMAL>;
 		};
 		pwmB1: pwm_b1_gpio32 {
-			label = "A1";
+			label = "B1";
 			pwms = <&ledc0 5 1000 PWM_POLARITY_NORMAL>;
 		};
 		pwmB2: pwm_b2_gpio33 {
-			label = "A1";
+			label = "B2";
 			pwms = <&ledc0 6 1000 PWM_POLARITY_NORMAL>;
 		};
 	};
@@ -47,7 +47,7 @@
 			label = "Led";
             gpios = <&gpio0 4 GPIO_ACTIVE_HIGH>;
         };
-        hc12set: hc12_set {
+        hc12_set: hc12_set {
 			label = "HC12 set";
             gpios = <&gpio0 18 GPIO_ACTIVE_HIGH>;
         };

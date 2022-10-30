@@ -16,7 +16,7 @@ struct gpio_callback sleep_callback;
 // Serial interface (HC12)
 struct serial_interface hc12_iface;
 struct command_writer hc12_writer;
-const struct gpio_dt_spec hc12_set = GPIO_DT_SPEC_GET(DT_ALIAS(hc12set), gpios);
+const struct gpio_dt_spec hc12_set = GPIO_DT_SPEC_GET(DT_ALIAS(hc12_set), gpios);
 const struct device *hc12_device = DEVICE_DT_GET(DT_ALIAS(hc12));
 
 struct motor_control motor_a = {
