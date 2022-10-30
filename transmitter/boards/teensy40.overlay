@@ -1,25 +1,25 @@
 / {
     aliases {
-        greenled = &green_led;
-        redled = &red_led;
+        green-led = &green_led;
+        red-led = &red_led;
         hc12 = &lpuart2;
-        hc12set = &hc12_set;
+        hc12-set = &hc12_set;
         usb = &cdc_acm_uart0;
      };
     
     pins {
         compatible = "gpio-leds";
-        hc12_set: set-1 {
-            gpios = <&gpio2 3 GPIO_ACTIVE_HIGH>;
+        hc12_set: hc12_set {
             label = "HC12 AT set pin";
+            gpios = <&gpio2 3 GPIO_ACTIVE_HIGH>;
         };
-        green_led: led-1 {
-            gpios = <&gpio1 16 GPIO_ACTIVE_HIGH>;
+        green_led: green_led {
             label = "Green status led";
+            gpios = <&gpio1 16 GPIO_ACTIVE_HIGH>;
         };
-        red_led: led-2 {
-            gpios = <&gpio1 24 GPIO_ACTIVE_HIGH>;
+        red_led: red_led {
             label = "Red status led";
+            gpios = <&gpio1 24 GPIO_ACTIVE_HIGH>;
         };
     };
 };
@@ -33,5 +33,5 @@
 
 &lpuart2 {
 	status = "okay";
-	current-speed = < 9600 >;
+	current-speed = <115200>;
 };

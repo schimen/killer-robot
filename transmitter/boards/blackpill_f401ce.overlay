@@ -4,29 +4,26 @@
 	};
 
     aliases {
-        hc05 = &usart1;
-        hc05-set = &hc05_set;
+        green-led = &green_led;
+        red-led = &red_led;
         hc12 = &usart2;
         hc12-set = &hc12_set;
+        usb = &cdc_acm_uart0;
      };
     
     pins {
         compatible = "gpio-leds";
-        green_led: led-2 {
-            gpios = <&gpioa 6 GPIO_ACTIVE_HIGH>;
-            label = "Green status led";
-        };
-        red_led: led-3 {
-            gpios = <&gpioa 7 GPIO_ACTIVE_HIGH>;
-            label = "Red status led";
-        };
-        hc05_set: set-1 {
-            gpios = <&gpiob 8 GPIO_ACTIVE_LOW>;
-            label = "HC05 AT set pin";
-        };
-        hc12_set: set-2 {
-            gpios = <&gpioa 5 GPIO_ACTIVE_LOW>;
+        hc12_set: hc12_set {
             label = "HC12 AT set pin";
+            gpios = <&gpioa 5 GPIO_ACTIVE_LOW>;
+        };
+        green_led: green_led {
+            label = "Green status led";
+            gpios = <&gpioa 6 GPIO_ACTIVE_HIGH>;
+        };
+        red_led: red_led {
+            label = "Red status led";
+            gpios = <&gpioa 7 GPIO_ACTIVE_HIGH>;
         };
     };
 };
@@ -38,17 +35,9 @@
 	};
 };
 
-&usart1 {
-    pinctrl-0 = <&usart1_tx_pb6 &usart1_rx_pb7>;
-    status = "okay";
-    current-speed = <9600>;
-};
-
 &usart2 {
+    pinctrl-0 = <&usart2_tx_pa2 &usart2_rx_pa3>;
+    pinctrl-names = "default";
     status = "okay";
-    current-speed = <9600>;
-};
-
-&i2c1 {
-	status = "disabled";
+    current-speed = <115200>;
 };

@@ -18,7 +18,7 @@
 // Create structs for hc12 interface
 struct serial_interface hc12_iface;
 struct command_writer hc12_writer;
-const struct gpio_dt_spec hc12_set = GPIO_DT_SPEC_GET(DT_ALIAS(hc12set), gpios);
+const struct gpio_dt_spec hc12_set = GPIO_DT_SPEC_GET(DT_ALIAS(hc12_set), gpios);
 const struct device *hc12_device = DEVICE_DT_GET(DT_ALIAS(hc12));
 
 // Create structs for usb interface
@@ -32,8 +32,8 @@ static struct k_thread threads[NUM_THREADS];
 
 // leds
 const struct gpio_dt_spec green_led =
-    GPIO_DT_SPEC_GET(DT_ALIAS(greenled), gpios);
-const struct gpio_dt_spec red_led = GPIO_DT_SPEC_GET(DT_ALIAS(redled), gpios);
+    GPIO_DT_SPEC_GET(DT_ALIAS(green_led), gpios);
+const struct gpio_dt_spec red_led = GPIO_DT_SPEC_GET(DT_ALIAS(red_led), gpios);
 
 /**
  * @brief Initialize leds
@@ -77,6 +77,7 @@ void ping_from_transmitter(struct command_data command) {
         send_ack(command, (uint8_t)receive_time);
         blink(&green_led);
         break;
+
     default:
         send_error(command, error_value);
         break;
@@ -110,7 +111,7 @@ void thread_callback(void *p1, void *p2, void *p3) {
             set_ack(command.id);
             // send all errors to usb
             command.writer = &usb_writer;
-            send_command_uart(command);
+            send_command(command);
             blink(&red_led);
             break;
 
@@ -154,7 +155,7 @@ void main(void) {
     // set up threads
     for (uint8_t i = 0; i < NUM_THREADS; i++) {
         k_thread_create(&threads[i], stacks[i], STACK_SIZE, thread_callback,
-                        NULL, NULL, NULL, THREAD_PRIORITY, K_USER, K_NO_WAIT);
+                        NULL, NULL, NULL, THREAD_PRIORITY, 0, K_NO_WAIT);
     }
 
     // blink led when starting
