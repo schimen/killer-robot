@@ -113,6 +113,14 @@ void add_command(struct command_data command);
 int get_command(struct command_data *command);
 
 /**
+ * @brief Send command over command writer specified in command
+ * 
+ * @param command Command that will be sent
+ * @return Value from send handler. Return negative value on error
+ */
+int send_command(struct command_data command);
+
+/**
  * @brief Send acknowledgement command
  *
  * @param command Command that should be acknowledged

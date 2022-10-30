@@ -42,16 +42,16 @@ int get_command(struct command_data *command) {
     return k_msgq_get(&incoming_commands, command, K_FOREVER);
 }
 
-void send_command(struct command_data command) {
+int send_command(struct command_data command) {
+    // Make sure command writer and send-function exists
     if (command.writer == NULL) {
-        printk("No writer for this interface");
-        return;
+        return -1;
     }
-    if (command.writer->send_command_func) {
-        (command.writer->send_command_func)(command);
-    } else {
-        printk("No function for this writer\n");
+    if (command.writer->send_command_func == NULL) {
+        return -1;
     }
+    // Send command and return result
+    return (command.writer->send_command_func)(command);
 }
 
 void send_ack(struct command_data command, uint8_t receive_time) {
