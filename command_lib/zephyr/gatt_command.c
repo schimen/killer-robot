@@ -66,6 +66,30 @@ void bt_ready(void) {
     bt_le_adv_start(BT_LE_ADV_CONN_NAME, ad, ARRAY_SIZE(ad), NULL, 0);
 }
 
+// Callback function for new connection
+static void connected(struct bt_conn *conn, uint8_t err)
+{
+    // Return upon error
+	if (err) {
+		return;
+	}
+    // Request new connection parameters 
+    // (connection interval between 15 and 30 ms and supervision timeout at 4s)
+    const struct bt_le_conn_param *param = BT_LE_CONN_PARAM(12, 24, 0, 400);
+    bt_conn_le_param_update(conn, param);
+}
+
+// Callback function for disconnection
+static void disconnected(struct bt_conn *conn, uint8_t reason) { 
+    // No beahviour defined for disconnect events yet
+}
+
+// Register connection callback functions
+BT_CONN_CB_DEFINE(conn_callbacks) = {
+	.connected = connected,
+	.disconnected = disconnected,
+};
+
 int peripheral_init() {
     // Enable bluetooth, return if error
     if (bt_enable(NULL)) {
