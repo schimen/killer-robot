@@ -43,7 +43,9 @@ async def connect(address):
                 else:
                     print(f'Command "{command}" or value "{value}" is not numerical')
             else:
+                start = time()
                 await write_command(client, int(command), int(value))
+                print(f'Wrote command in {(time()-start)*1000} ms')
 
 async def main():
     print("Script for sending commands to rupert. Type `exit` or `q` to quit")
