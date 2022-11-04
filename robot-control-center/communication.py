@@ -99,7 +99,7 @@ class Communication:
         duplicate_message_a = self.old_message.get(command_a) == motor_a
         duplicate_message_b = self.old_message.get(command_b) == motor_b
         duplicate_message_w = self.old_message.get(command_w) == motor_w
-        if duplicate_message_a and duplicate_message_b:
+        if all((duplicate_message_a, duplicate_message_b, duplicate_message_w)):
             return
         # add message a
         if not duplicate_message_a:
@@ -129,7 +129,7 @@ class Communication:
             interface = self.get_interface()
             
             command, value = self.outgoing_commands.get()
-            printable_message = f'command: {command}, value: {value}'
+            printable_message = f'command: {command}, value: {str(value).rjust(3)}'
 
             # Send over serial
             if type(interface) == Serial:
@@ -146,8 +146,8 @@ class Communication:
                         data.extend([head(command), value])
                         try:
                             self.event_loop.run_until_complete(self.gatt_send(data))
-                        except:
-                            print('Client is disconnected')  
+                        except Exception as e:
+                            print(f'Client is disconnected ({e})')  
                             if self.bt_disconnect_cb:
                                 self.bt_disconnect_cb()
 

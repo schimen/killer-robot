@@ -33,13 +33,16 @@ class windows(tk.Tk):
         # configuring the location of the container using grid
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
- 
+
+        self.frames = {}
         for i, F in enumerate((ControlOptions, Controls, DeviceOptions, BluetoothOptions)):
             frame = F(container, self)
             frame.grid(row=i, column=0)
+            self.frames[frame.name] = frame
 
 class Controls(tk.Frame):
     def __init__(self, parent, _):
+        self.name = "Controls"
         tk.Frame.__init__(self, parent) 
         label = tk.Label(self, text="Controls")
 
@@ -66,6 +69,7 @@ class Controls(tk.Frame):
 
 class ControlOptions(tk.Frame):
     def __init__(self, parent, _):
+        self.name = "ControlOptions"
         tk.Frame.__init__(self, parent) 
         label = tk.Label(self, text="Control Options")
         label.grid(row=0, column=1)
@@ -83,7 +87,8 @@ class ControlOptions(tk.Frame):
         # setting alternate variables
         self.set_shift_values = create_option_check(
             self, (4, 0), 0, 
-            text = 'Set shift values', onvalue = 1, offvalue = 0
+            text = 'Set shift values', onvalue = 1, offvalue = 0,
+            command = self.set_shift_entries
         )
         # update the variables
         update_button = tk.Button(
@@ -110,7 +115,7 @@ class ControlOptions(tk.Frame):
         # set forward speed
         forward_str = self.forward_entry.get()
         if forward_str.isdigit():
-            max_forward = 255; min_forward = 127
+            max_forward = 100; min_forward = 0
             limited_value = limit_value(min_forward, max_forward, int(forward_str))
             forward_var = limited_value
             print(f'Forward speed: {forward_var}')
@@ -118,7 +123,7 @@ class ControlOptions(tk.Frame):
         # set bacwkard speed
         backward_str = self.backward_entry.get()
         if backward_str.isdigit():
-            max_backward = 0; min_backward = 127
+            max_backward = 100; min_backward = 0
             limited_value = limit_value(min_backward, max_backward, int(backward_str))
             backward_var = limited_value
             print(f'Bacward speed: {backward_var}')
@@ -145,8 +150,25 @@ class ControlOptions(tk.Frame):
             ControlOptions.backward_speed = backward_var
             ControlOptions.turn_fraction = turn_var
 
+    def set_shift_entries(self):
+        # Clear all entries
+        self.forward_entry.delete(0, 3)
+        self.backward_entry.delete(0, 3)
+        self.turnrate_entry.delete(0, 3)
+
+        if self.set_shift_values.get() > 0:
+            self.forward_entry.insert(0, str(ControlOptions.forward_speed_alt))
+            self.backward_entry.insert(0, str(ControlOptions.backward_speed_alt))
+            self.turnrate_entry.insert(0, str(ControlOptions.turn_fraction_alt))
+
+        else:
+            self.forward_entry.insert(0, str(ControlOptions.forward_speed))
+            self.backward_entry.insert(0, str(ControlOptions.backward_speed))
+            self.turnrate_entry.insert(0, str(ControlOptions.turn_fraction))
+
 class DeviceOptions(tk.Frame):
     def __init__(self, parent, _):
+        self.name = "DeviceOptions"
         tk.Frame.__init__(self, parent)
         label = tk.Label(self, text="Device Options")
         label.grid(row=0, column = 1)
@@ -195,6 +217,7 @@ class DeviceOptions(tk.Frame):
 
 class BluetoothOptions(tk.Frame):
     def __init__(self, parent, _):
+        self.name = "BluetoothOptions"
         tk.Frame.__init__(self, parent)
         label = tk.Label(self, text="Bluetooth options")
         label.grid(row=0, column = 1)
@@ -262,6 +285,8 @@ def process_keys():
                     ,  9: 'esc'
                     , 50: 'shift' 
                     , 65: 'space'
+                    , 36: 'enter'
+                    , 64: 'alt'
                     }
     else : 
         key_links = { 87: 'w'
@@ -271,13 +296,13 @@ def process_keys():
                     , 27: 'esc'
                     , 16: 'shift' 
                     , 32: 'space'
+                    , 36: 'enter' # windows value?
+                    , 64: 'alt' # windows value?
                     }
     # if there is no change since last time keys were pressed
     if pressed_keys == process_keys.last_pressed_keys:
         return
-    
     process_keys.last_pressed_keys = pressed_keys.copy()
-
     # filter out uninteresting keys
     relevant_keys = set(filter(lambda x: x in key_links, pressed_keys))
     # get key names from key numbers
@@ -288,16 +313,9 @@ def process_keys():
     if 'esc' in keys: # unfocus stuff
         control_panel.focus()
 
-    if 'space' in keys: # go reverse!
-        motor_b, motor_a = calculate_speed(keys)
-        # invert speed
-        #motor_b = -1*motor_b; motor_a = -1*motor_a
-
-    else: # calculate speed based on keys pressed
-        motor_a, motor_b = calculate_speed(keys)
-
-    motor_w = 127
-
+    # Calculate motor speeds
+    motor_a, motor_b, motor_w = calculate_speed(keys)
+    
     # send the message :)
     comm.send_message(motor_a, motor_b, motor_w)
 
@@ -313,17 +331,20 @@ def ghostpress_buttons(keys):
             button.config(relief='raised') # non pressed key
 
 def calculate_speed(keys):
-    if 'shift' in keys: # alternate speed
+    if 'alt' in keys: # alternate speed
+        weapon_speed   = ControlOptions.weapon_speed_alt
         forward_speed  = ControlOptions.forward_speed_alt
         backward_speed = ControlOptions.backward_speed_alt
         turn_fraction  = ControlOptions.turn_fraction_alt
     else:               # normal speed
+        weapon_speed   = ControlOptions.weapon_speed
         forward_speed  = ControlOptions.forward_speed
         backward_speed = ControlOptions.backward_speed
         turn_fraction  = ControlOptions.turn_fraction
 
     motor_a = 0
     motor_b = 0
+    motor_w = 0
 
     if 'w' in keys: # forward
         motor_a += forward_speed
@@ -344,7 +365,15 @@ def calculate_speed(keys):
             motor_a -= int(turn_fraction*forward_speed)
             motor_b += int(turn_fraction*forward_speed)
 
-    return limit_motor(motor_a+127), limit_motor(motor_b+127)
+    if 'shift' in keys: # go reverse!
+        # invert speed
+        motor_a = -1*motor_a
+        motor_b = -1*motor_b
+
+    if 'space' in keys: # weapon on
+        motor_w = weapon_speed
+    
+    return limit_motor(motor_a+127), limit_motor(motor_b+127), limit_motor(motor_w+127)
 
 def limit_motor(value):
     # limit the motor value
@@ -400,9 +429,11 @@ if __name__ == "__main__":
 
 
     # Variables for controlling the different speed values
+    ControlOptions.weapon_speed = 20
     ControlOptions.forward_speed  = 100
     ControlOptions.backward_speed = 100
     ControlOptions.turn_fraction  = 1
+    ControlOptions.weapon_speed_alt = 10
     ControlOptions.forward_speed_alt  = 75
     ControlOptions.backward_speed_alt = 75
     ControlOptions.turn_fraction_alt  = 0.5
