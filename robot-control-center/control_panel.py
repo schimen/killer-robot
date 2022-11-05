@@ -231,10 +231,14 @@ class BluetoothOptions(tk.Frame):
         )
         self.open_button.grid(row=3, column = 1)
 
-    def bt_disconnect_cb(self):
-        comm.remove_interface(comm.ble_client)
-        self.open_button.config(text='Connect')
+    def bt_disconnect_cb(self, client):
+        comm.remove_interface(client)
         print('Disconnected')
+        try:
+            self.open_button.config(text='Connect')
+        except tk.TclError:
+            print('GUI already closed')
+            
 
     def bt_connect_cb(self):
         comm.add_interface(comm.ble_client, 0)

@@ -10,6 +10,7 @@ import atexit
 from threading import Thread
 from queue import Queue
 import asyncio
+from time import time
 
 CUSTOM_SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0"
 COMMAND_WRITE_UUID  = "12345678-1234-5678-1234-56789abcdef1"
@@ -38,10 +39,6 @@ class Communication:
         self.outgoing_commands = Queue(maxsize=8)
         self.ble_client = None
         self.event_loop = asyncio.get_event_loop()
-
-        # BT disconnect callback 
-        # (for when bluetooth disconnects unwanted)
-        self.bt_disconnect_cb = None
         
         # Start thread for sending commands
         Thread(
@@ -144,19 +141,13 @@ class Communication:
                     while (not self.outgoing_commands.empty()) and (len(data) < 8):
                         command, value = self.outgoing_commands.get_nowait()
                         data.extend([head(command), value])
-                        try:
-                            self.event_loop.run_until_complete(self.gatt_send(data))
-                        except Exception as e:
-                            print(f'Client is disconnected ({e})')  
-                            if self.bt_disconnect_cb:
-                                self.bt_disconnect_cb()
-
-                            break
+                    try:
+                        self.event_loop.run_until_complete(self.gatt_send(data))
+                    except Exception as e:
+                        print(f'Client is already disconnected ({e})')
 
                 else:
                     print(f'{printable_message} (bluetooth not connected)')
-                    if self.bt_disconnect_cb:
-                        self.bt_disconnect_cb()
             else:
                 print(f'{printable_message} (no interface)')
 
@@ -215,17 +206,17 @@ class Communication:
         key = (0xE0 & head) >> 5
         address = 0x07 & head
         print(f'Received command {key} (id: {address}) value: {value}')
-        incoming_commands.put((key, address, value))
+        self.incoming_commands.put((key, address, value))
 
-    async def ble_async_connect(self, name):
-        atexit.register(self.ble_disconnect, run_callback=False)
+    async def ble_async_connect(self, name, disconnect_cb):
+        atexit.register(self.ble_disconnect)
         print('Search for device')
         device = await find_device(name)
         if device is None:
             print("Found no relevant device")
             return
         
-        client = BleakClient(device.address)
+        client = BleakClient(device.address, disconnected_callback = disconnect_cb)
         print(f'Connecting to {device.name} at address {device.address}')
         await client.connect()
 
@@ -238,28 +229,26 @@ class Communication:
 
     def ble_connect(self, name, connect_cb, disconnect_cb):
         self.bt_connect_cb = connect_cb
-        self.bt_disconnect_cb = disconnect_cb
-        self.ble_client = self.event_loop.run_until_complete(self.ble_async_connect(name))
+        self.ble_client = self.event_loop.run_until_complete(self.ble_async_connect(name, disconnect_cb))
         if type(self.ble_client) == BleakClient:
             if self.ble_client.is_connected and connect_cb:
                 connect_cb()
 
-    def ble_disconnect(self, run_callback=True):
+    def ble_disconnect(self):
         if type(self.ble_client) == BleakClient:
             if self.ble_client.is_connected:
                 print(f'Disconnecting from {self.ble_client.address}')
                 self.event_loop.run_until_complete(self.ble_client.disconnect())
             else:
                 print('Client is already disconnected')
-
-        if self.bt_disconnect_cb and run_callback:
-            self.bt_disconnect_cb()
         
         self.ble_client = None
 
     async def gatt_send(self, data):
         data_bytes = bytearray(data)
+        start = time()
         await self.ble_client.write_gatt_char(COMMAND_WRITE_UUID, data_bytes)
+        print(f'Sent command in {(time()-start)*1000} ms')
 
 async def find_device(name):
     correct_device = lambda d, _: name in d.name.lower()
