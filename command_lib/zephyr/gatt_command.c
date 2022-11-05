@@ -1,5 +1,8 @@
 #include "gatt_command.h"
 
+// Use logger from command.c
+LOG_MODULE_DECLARE(command);
+
 #define BT_UUID_CUSTOM_SERVICE_VAL                                             \
     BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef0)
 
@@ -12,14 +15,18 @@ static struct bt_uuid_128 command_value_uuid = BT_UUID_INIT_128(
     BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef1));
 
 int send_command_gatt(struct command_data command) {
-    const struct bt_gatt_attr *attr = command.writer->iface;
     int err;
+    const struct bt_gatt_attr *attr = command.writer->iface;
     if (attr) { // Send command if attribute exists
         uint8_t head = (command.key << 5) | (command.id & 0x07);
         uint8_t data[COMMAND_LEN] = {head, command.value};
         // Notify new command
         err = bt_gatt_notify(NULL, attr, &data, COMMAND_LEN);
+        if (err) {
+            LOG_ERR("Error %d: Failed to notify attribute", err);
+        }
     } else { // Return error if attr is NULL
+        LOG_WRN("Warning: Command writer iface not set");
         err = -1;
     }
     return err;
@@ -32,6 +39,10 @@ ssize_t write_command(struct bt_conn *conn, const struct bt_gatt_attr *attr,
     // Error if invalid offset
     // (length and offset must make a even number)
     if ((offset + len) % 2 != 0) {
+        LOG_ERR(
+            "Error %d: sum of length (%d) and offset (%d) must be even", 
+            BT_ATT_ERR_INVALID_OFFSET, len, offset
+        );
         return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
     }
 
@@ -71,8 +82,14 @@ static void connected(struct bt_conn *conn, uint8_t err)
 {
     // Return upon error
 	if (err) {
+        LOG_ERR("Error %d: Failed to connect", err);
 		return;
 	}
+    #if CONFIG_LOG_DEFAULT_LEVEL >= LOG_LEVEL_INF
+    char addr[BT_ADDR_LE_STR_LEN];
+	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
+    LOG_INF("Connected to %s", addr);
+    #endif
     // Request new connection parameters 
     // (connection interval between 15 and 30 ms and supervision timeout at 4s)
     const struct bt_le_conn_param *param = BT_LE_CONN_PARAM(12, 24, 0, 400);
@@ -81,7 +98,11 @@ static void connected(struct bt_conn *conn, uint8_t err)
 
 // Callback function for disconnection
 static void disconnected(struct bt_conn *conn, uint8_t reason) { 
-    // No beahviour defined for disconnect events yet
+    #if CONFIG_LOG_DEFAULT_LEVEL >= LOG_LEVEL_INF
+    char addr[BT_ADDR_LE_STR_LEN];
+	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
+    LOG_INF("Disconnected from %s (reason: %d)", addr, reason);
+    #endif
 }
 
 // Register connection callback functions
@@ -92,8 +113,10 @@ BT_CONN_CB_DEFINE(conn_callbacks) = {
 
 int peripheral_init() {
     // Enable bluetooth, return if error
-    if (bt_enable(NULL)) {
-        return -1;
+    int err = bt_enable(NULL);
+    if (err) {
+        LOG_ERR("Error %d: failed to enable bluetooth", err);
+        return err;
     }
     // Start bluetooth
     bt_ready();

@@ -1,5 +1,8 @@
 #include "uart_command.h"
 
+// Use logger from command.c
+LOG_MODULE_DECLARE(command);
+
 void serial_init(struct serial_interface *iface, struct command_writer *writer,
                  const struct device *dev,
                  const struct gpio_dt_spec *state_pin) {
@@ -78,6 +81,7 @@ int send_command_uart(struct command_data command) {
     // lock mutex before sending
     if (k_mutex_lock(&iface->mutex, K_MSEC(100))) {
         // if mutex is not available in 100ms
+        LOG_WRN("Warning: Serial interface mutex lock timed out");
         return 1;
     }
     // send command

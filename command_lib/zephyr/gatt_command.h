@@ -7,6 +7,7 @@
 #include <zephyr/bluetooth/hci.h>
 #include <zephyr/bluetooth/uuid.h>
 #include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 
 #include "command.h"
 

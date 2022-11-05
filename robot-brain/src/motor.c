@@ -1,5 +1,8 @@
 #include "motor.h"
 
+// Use logger from main.c
+LOG_MODULE_DECLARE(brain);
+
 // How much the speed will chenge each interval
 #define SPEED_STEP 10
 // Length of delay between each change of speed
@@ -15,7 +18,7 @@ static struct k_thread motor_threads[NUM_THREADS];
 K_THREAD_STACK_ARRAY_DEFINE(stacks, NUM_THREADS, STACK_SIZE);
 
 // Define weapon and motor pwm periods
-static const uint32_t MOTOR_PERIOD = PWM_MSEC(20U);
+static const uint32_t MOTOR_PERIOD = PWM_MSEC(2U);
 static const uint32_t WEAPON_PERIOD = PWM_MSEC(20U);
 #define WEAPON_PULSE_MIN PWM_MSEC(1U)
 #define WEAPON_PULSE_MAX PWM_MSEC(2U)

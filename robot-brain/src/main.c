@@ -1,12 +1,15 @@
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pwm.h>
-#include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
+#include <zephyr/logging/log.h>
 
 #include "gatt_command.h"
 #include "uart_command.h"
 #include "motor.h"
+
+// Register logger
+LOG_MODULE_REGISTER(brain);
 
 // GPIO structs
 const struct gpio_dt_spec led0 = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
@@ -43,58 +46,104 @@ struct k_work_q work_q;
  * @brief Blink led0
  */
 void blink() {
-    gpio_pin_set(led0.port, led0.pin, 1);
+    gpio_pin_set_dt(&led0, 1);
     k_msleep(50);
-    gpio_pin_set(led0.port, led0.pin, 0);
+    gpio_pin_set_dt(&led0, 0);
 }
+
+static void start_sleep() {
+    LOG_INF("Sleep mode on");
+    blink();
+}
+
+static void stop_sleep() {
+    LOG_INF("Sleep mode off");
+    blink();
+}
+
+// Define blink worker
+K_WORK_DEFINE(blink_worker, blink);
+// Define sleep and wake workers 
+// (sleep and wake device in workthread, not interrupt)
+K_WORK_DEFINE(sleep_worker, start_sleep);
+K_WORK_DEFINE(wake_worker, stop_sleep);
 
 /**
  * @brief Callback for sleep-pin interrupt on sleep
  */
 static void sleep_handler(const struct device *port, struct gpio_callback *cb, uint32_t pins)
 {
-    static bool currently_sleeping = false;
     ARG_UNUSED(port); ARG_UNUSED(cb); ARG_UNUSED(pins);
-    if (currently_sleeping) {
-        printk("Wake interrupt");
-        currently_sleeping = false;
+    static int sleep_mode = 0;
+    // Read nsleep pin to see if device should sleep or wake up
+    int state = gpio_pin_get_dt(&nsleep);
+    if (state < 0) {
+        LOG_ERR(
+            "Error %d: failed to read %s pin %d", 
+            state, nsleep.port->name, nsleep.pin
+        );
+    }
+    // Save state so it does not duplicate
+    if (sleep_mode != state) {
+        sleep_mode = state;
+    }
+    if (sleep_mode) {
+        k_work_submit(&sleep_worker);
     }
     else {
-        printk("Sleep interrupt");
-        currently_sleeping = true;
+        k_work_submit(&wake_worker);
     }
 }
 
-// Define blink worker
-K_WORK_DEFINE(blink_worker, blink);
-
 /**
  * @brief Blink led0 in workthread
- *
  */
-void blink_wt() { k_work_submit(&blink_worker); }
+static inline void blink_wt() { k_work_submit(&blink_worker); }
 
 void main(void) {
+    // Save error codes during initialization
+    int err;
+
     // Init and start workqueue
     k_work_queue_init(&work_q);
     k_work_queue_start(&work_q, workthread_area, WORKTHREAD_SIZE,
                        WORKTHREAD_PRIO, NULL);
 
+    // Init led0
+    err = gpio_pin_configure_dt(&led0, GPIO_OUTPUT_INACTIVE);
+    if (err) {
+        LOG_ERR(
+            "Error %d: failed to configure %s pin %d",
+            err, led0.port->name, led0.pin
+        );
+    }
+
+    // Configure nsleep pin and add sleep callback to it
+    err = gpio_pin_configure_dt(&nsleep, GPIO_INPUT);
+    if (err) {
+        LOG_ERR(
+            "Error %d: failed to configure %s pin %d", 
+            err, nsleep.port->name, nsleep.pin
+        );
+    }
+    err = gpio_pin_interrupt_configure_dt(&nsleep, GPIO_INT_EDGE_BOTH);
+    if (err) {
+        LOG_ERR(
+            "Error %d: failed to configure interrupt on %s pin %d",
+            err, nsleep.port->name, nsleep.pin
+        );
+    }
+    gpio_init_callback(&sleep_callback, sleep_handler, BIT(nsleep.pin));
+    err = gpio_add_callback(nsleep.port, &sleep_callback);
+    if (err) {
+        LOG_ERR(
+            "Error %d: failed to add callback to %s", 
+            err, nsleep.port->name
+        );
+    }
+
     // Init motor control
     motor_init(&motor_a, &motor_b, &weapon);
-
-    // Init led0
-    if (gpio_pin_configure_dt(&led0, GPIO_OUTPUT_INACTIVE) == 0) {
-        blink_wt(&led0);
-    }
-
-    // Init sleep and wake interrupt
-    if (gpio_pin_configure_dt(&nsleep, GPIO_INPUT) == 0) {
-        gpio_init_callback(&sleep_callback, sleep_handler, BIT(nsleep.pin));
-        if (gpio_add_callback(nsleep.port, &sleep_callback) == 0) {
-            gpio_pin_interrupt_configure_dt(&nsleep, GPIO_INT_EDGE_BOTH);
-        }
-    }
 
     // Initialize serial interface (HC12)
     serial_init(&hc12_iface, &hc12_writer, hc12_device, &hc12_set);
@@ -102,9 +151,17 @@ void main(void) {
     // Start bluetooth service
     peripheral_init();
 
+    // Blink led when ready
+    blink_wt(&led0);
+    LOG_INF("Setup finished");
+
     // Receive incoming commands
     struct command_data command;
     while (get_command(&command) == 0) {
+        LOG_INF(
+            "New command %d (id %d) with value %d", 
+            command.key, command.id, command.value
+        );
         blink_wt();
         switch (command.key) {
         case error_command: // an error ocurred!

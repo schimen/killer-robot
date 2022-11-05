@@ -3,6 +3,7 @@
 
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 
 /** @brief Structure for motor control. */
 struct motor_control {

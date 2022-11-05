@@ -2,6 +2,7 @@
 #define COMMAND_H
 
 #include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 
 #define ACK_TIMEOUT K_MSEC(250)
 

@@ -1,5 +1,8 @@
 #include "command.h"
 
+// Register logger for command-lib
+LOG_MODULE_REGISTER(command);
+
 // Create incoming command queue and ack event for acks
 K_MSGQ_DEFINE(incoming_commands, sizeof(struct command_data), MAX_MSGS, 4);
 K_EVENT_DEFINE(ack_event);
