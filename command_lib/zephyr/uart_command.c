@@ -11,16 +11,30 @@ void serial_init(struct serial_interface *iface, struct command_writer *writer,
     iface->state_pin = state_pin;
     // Initialize mutex
     k_mutex_init(&iface->mutex);
-    // Configure state pin
-    if (iface->state_pin) {
-        gpio_pin_configure_dt(iface->state_pin, GPIO_OUTPUT_INACTIVE);
-    }
     // Set up writer
     writer->send_command_func = &send_command_uart;
     writer->iface = iface;
     // Set up and enable uart interrupt
     uart_irq_callback_user_data_set(iface->dev, receive_command_uart, writer);
+    serial_enable(iface);
+}
+
+void serial_enable(struct serial_interface *iface) {
+    // Configure state pin
+    if (iface->state_pin) {
+        gpio_pin_configure_dt(iface->state_pin, GPIO_OUTPUT_INACTIVE);
+    }
+    // Enable uart interrupt
     uart_irq_rx_enable(iface->dev);
+}
+
+void serial_disable(struct serial_interface *iface) {
+    // Configure state pin
+    if (iface->state_pin) {
+        gpio_pin_configure_dt(iface->state_pin, GPIO_DISCONNECTED);
+    }
+    // Enable uart interrupt
+    uart_irq_rx_disable(iface->dev);
 }
 
 void uart_print(const struct device *dev, const char *format, ...) {

@@ -23,9 +23,13 @@ static uint8_t command_value[COMMAND_LEN];
 int send_command_gatt(struct command_data command);
 
 /**
- * @brief Function for initializing Bluetooth and starting command service
- *
+ * @brief Function for enabling Bluetooth
  */
-int peripheral_init();
+int peripheral_enable();
+
+/**
+ * @brief Function for disabling Bluetooth
+ */
+int peripheral_disable();
 
 #endif

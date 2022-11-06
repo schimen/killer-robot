@@ -53,6 +53,20 @@ void serial_init(struct serial_interface *iface, struct command_writer *writer,
                  const struct gpio_dt_spec *state_pin);
 
 /**
+ * @brief Enable state-pin and uart interrupt for serial interface
+ * 
+ * @param iface Pointer to serial_interface
+ */
+void serial_enable(struct serial_interface *iface);
+
+/**
+ * @brief Disable state-pin and uart interrupt for serial interface
+ * 
+ * @param iface Pointer to serial_interface
+ */
+void serial_disable(struct serial_interface *iface);
+
+/**
  * @brief Print string to uart device (using polling)
  *
  * @param dev uart device

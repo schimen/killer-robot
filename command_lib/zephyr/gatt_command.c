@@ -72,11 +72,6 @@ static const struct bt_data ad[] = {
     BT_DATA_BYTES(BT_DATA_UUID128_ALL, BT_UUID_CUSTOM_SERVICE_VAL),
 };
 
-void bt_ready(void) {
-    // Start bluetooth advertising
-    bt_le_adv_start(BT_LE_ADV_CONN_NAME, ad, ARRAY_SIZE(ad), NULL, 0);
-}
-
 // Callback function for new connection
 static void connected(struct bt_conn *conn, uint8_t err)
 {
@@ -111,15 +106,27 @@ BT_CONN_CB_DEFINE(conn_callbacks) = {
 	.disconnected = disconnected,
 };
 
-int peripheral_init() {
+int peripheral_disable() {
+    // Stop advertising
+    return bt_le_adv_stop();
+}
+
+int peripheral_enable() {
+    int err;
     // Enable bluetooth, return if error
-    int err = bt_enable(NULL);
-    if (err) {
-        LOG_ERR("Error %d: failed to enable bluetooth", err);
-        return err;
+    if (!bt_is_ready()) {
+        err = bt_enable(NULL);
+        if (err) {
+            LOG_ERR("Error %d: failed to enable bluetooth", err);
+            return -1;
+        }
     }
-    // Start bluetooth
-    bt_ready();
+    // Start bluetooth advertising, return if error
+    err = bt_le_adv_start(BT_LE_ADV_CONN_NAME, ad, ARRAY_SIZE(ad), NULL, 0);
+    if (err) {
+        LOG_ERR("Error %d: failed to start advertising", err);
+        return -1;
+    }
     return 0;
 }
 
