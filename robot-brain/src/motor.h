@@ -31,6 +31,20 @@ void motor_init(struct motor_control *motor_a, struct motor_control *motor_b,
                 struct motor_control *motor_w);
 
 /**
+ * @brief Set 0 duty cycle to motor
+ * 
+ * @param motor motor_control struct of relevant motor
+ */
+void motor_off(struct motor_control *motor);
+
+/**
+ * @brief Set 0 duty cycle to wepon
+ * 
+ * @param motor motor_control struct of relevant weapon
+ */
+void weapon_off(struct motor_control *weapon);
+
+/**
  * @brief Set speed of a motor
  *
  * @param motor motor_control struct that decides how motor speed will be set.

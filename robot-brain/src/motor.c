@@ -33,18 +33,32 @@ void motor_init(struct motor_control *motor_a, struct motor_control *motor_b,
     motor_a->thread = k_thread_create(
         &motor_threads[0], stacks[0], STACK_SIZE, motor_speed_thread_callback,
         motor_a, NULL, NULL, THREAD_PRIORITY, 0, K_NO_WAIT);
+    set_motor_speed(&motor_a->en1, &motor_a->en2, motor_a->speed);
 
     motor_b->speed = 127;
     motor_b->set_speed_func = &set_motor_speed;
     motor_b->thread = k_thread_create(
         &motor_threads[1], stacks[1], STACK_SIZE, motor_speed_thread_callback,
         motor_b, NULL, NULL, THREAD_PRIORITY, 0, K_NO_WAIT);
+    set_motor_speed(&motor_b->en1, &motor_b->en2, motor_b->speed);
 
     motor_w->speed = 127;
     motor_w->set_speed_func = &set_weapon_speed;
     motor_w->thread = k_thread_create(
         &motor_threads[2], stacks[2], STACK_SIZE, motor_speed_thread_callback,
         motor_w, NULL, NULL, THREAD_PRIORITY, 0, K_NO_WAIT);
+    set_weapon_speed(&motor_w->en1, NULL, motor_w->speed);
+}
+
+void motor_off(struct motor_control *motor) {
+    pwm_set_dt(&motor->en1, MOTOR_PERIOD, 0);
+    pwm_set_dt(&motor->en2, MOTOR_PERIOD, 0);
+    motor->speed = 127;
+}
+
+void weapon_off(struct motor_control *weapon) {
+    pwm_set_dt(&weapon->en1, WEAPON_PERIOD, 0);
+    weapon->speed = 127;
 }
 
 void set_speed(struct motor_control *motor, uint8_t speed_u) {
