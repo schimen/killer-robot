@@ -37,6 +37,7 @@ void add_command(struct command_data command) {
     // Add new command to incoming commands
     while (k_msgq_put(&incoming_commands, &command, K_NO_WAIT) != 0) {
         // message queue is full, purge and try again
+        LOG_WRN("Message queue full, purging message-queue");
         k_msgq_purge(&incoming_commands);
     }
 }
@@ -48,9 +49,11 @@ int get_command(struct command_data *command) {
 int send_command(struct command_data command) {
     // Make sure command writer and send-function exists
     if (command.writer == NULL) {
+        LOG_ERR("Failed to send, no command writer");
         return -1;
     }
     if (command.writer->send_command_func == NULL) {
+        LOG_ERR("Failed to send, no send function");
         return -1;
     }
     // Send command and return result
@@ -74,6 +77,8 @@ uint8_t send_ping(struct command_writer *writer) {
     command.key = ping_command;
     command.id = get_message_id();
     command.value = 0;
-    send_command(command);
+    if (send_command(command)) {
+        LOG_ERR("Failed to send ping (id: %d)", command.id);
+    }
     return command.id;
 }
