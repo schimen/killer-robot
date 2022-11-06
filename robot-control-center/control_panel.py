@@ -54,9 +54,9 @@ class Controls(tk.Frame):
                           , 'a': (2, 1)
                           , 's': (2, 2)
                           , 'd': (2, 3)
-                          , 'x': (3, 3)
                           , 'shift': (3, 0)
-                          , 'space': (3, 4)
+                          , 'alt':   (3, 1)
+                          , 'space': (3, 2)
                           }
         for key, (i, j) in control_buttons.items():
             new_button = tk.Button(
@@ -75,14 +75,17 @@ class ControlOptions(tk.Frame):
         label.grid(row=0, column=1)
 
         # create entries for the options
+        self.weapon_entry = create_option_entry(
+            self, 'Weapon speed', (1, 0), self.weapon_speed
+        )
         self.forward_entry = create_option_entry(
-            self, 'Forward speed', (1, 0), self.forward_speed
+            self, 'Forward speed', (2, 0), self.forward_speed
         )
         self.backward_entry = create_option_entry(
-            self, 'Backward speed', (2, 0), self.backward_speed
+            self, 'Backward speed', (3, 0), self.backward_speed
         )
         self.turnrate_entry = create_option_entry(
-            self, 'Turning rate', (3, 0), self.turn_fraction
+            self, 'Turning rate', (4, 0), self.turn_fraction
         )
         # setting alternate variables
         self.set_shift_values = create_option_check(
@@ -95,7 +98,7 @@ class ControlOptions(tk.Frame):
             self, 
             text = 'Update values', command = self.update_values
         )
-        update_button.grid(row=4, column=1)
+        update_button.grid(row=5, column=1)
 
     def update_values(self):
 
@@ -111,6 +114,14 @@ class ControlOptions(tk.Frame):
 
         # unfocus entries
         control_panel.focus()
+
+        # set weapon speed
+        weapon_str = self.weapon_entry.get()
+        if weapon_str.isdigit():
+            max_weapon = 100; min_weapon = -100
+            limited_value = limit_value(min_weapon, max_wepaon, int(weapon_str))
+            weapon_var = limited_value
+            print(f'Weapon speed: {weapon_var}')
 
         # set forward speed
         forward_str = self.forward_entry.get()
@@ -141,27 +152,32 @@ class ControlOptions(tk.Frame):
 
         if self.set_shift_values.get() > 0: # setting alternate speed
             print("Setting alternate speed")
+            ControlOptions.weapon_speed_alt = weapon_var
             ControlOptions.forward_speed_alt = forward_var
             ControlOptions.backward_speed_alt = backward_var
             ControlOptions.turn_fraction_alt = turn_var
         else:                               # setting normal speed
             print("Setting normal speed")
+            ControlOptions.weapon_speed = weapon_var
             ControlOptions.forward_speed = forward_var 
             ControlOptions.backward_speed = backward_var
             ControlOptions.turn_fraction = turn_var
 
     def set_shift_entries(self):
         # Clear all entries
-        self.forward_entry.delete(0, 3)
-        self.backward_entry.delete(0, 3)
-        self.turnrate_entry.delete(0, 3)
+        self.weapon_entry.delete(0, 4)
+        self.forward_entry.delete(0, 4)
+        self.backward_entry.delete(0, 4)
+        self.turnrate_entry.delete(0, 4)
 
         if self.set_shift_values.get() > 0:
+            self.weapon_entry.insert(0, str(ControlOptions.weapon_speed_alt))
             self.forward_entry.insert(0, str(ControlOptions.forward_speed_alt))
             self.backward_entry.insert(0, str(ControlOptions.backward_speed_alt))
             self.turnrate_entry.insert(0, str(ControlOptions.turn_fraction_alt))
 
         else:
+            self.weapon_entry.insert(0, str(ControlOptions.weapon_speed))
             self.forward_entry.insert(0, str(ControlOptions.forward_speed))
             self.backward_entry.insert(0, str(ControlOptions.backward_speed))
             self.turnrate_entry.insert(0, str(ControlOptions.turn_fraction))
@@ -369,13 +385,15 @@ def calculate_speed(keys):
             motor_a -= int(turn_fraction*forward_speed)
             motor_b += int(turn_fraction*forward_speed)
 
+    if 'space' in keys: # weapon on
+        motor_w = weapon_speed
+
     if 'shift' in keys: # go reverse!
         # invert speed
+        motor_w = -1*motor_w
         motor_a = -1*motor_a
         motor_b = -1*motor_b
 
-    if 'space' in keys: # weapon on
-        motor_w = weapon_speed
     
     return limit_motor(motor_a+127), limit_motor(motor_b+127), limit_motor(motor_w+127)
 
