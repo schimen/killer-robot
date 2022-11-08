@@ -19,27 +19,27 @@
 		compatible = "pwm-leds";
 		pwm1: pwm1_gpio19 {
 			label = "PWM1";
-			pwms = <&ledc0 1 0 PWM_POLARITY_NORMAL>;
+			pwms = <&ledc0 0 0 PWM_POLARITY_NORMAL>;
 		};
 		pwm2: pwm2_gpio_gpio21 {
 			label = "PWM2";
-			pwms = <&ledc0 2 0 PWM_POLARITY_NORMAL>;
+			pwms = <&ledc0 1 0 PWM_POLARITY_NORMAL>;
 		};
 		pwm_a1: pwm_a1_gpio22 {
 			label = "A1";
-			pwms = <&ledc0 3 0 PWM_POLARITY_NORMAL>;
+			pwms = <&ledc0 2 0 PWM_POLARITY_NORMAL>;
 		};
 		pwm_a2: pwm_a2_gpio23 {
 			label = "A2";
-			pwms = <&ledc0 4 0 PWM_POLARITY_NORMAL>;
+			pwms = <&ledc0 3 0 PWM_POLARITY_NORMAL>;
 		};
 		pwm_b1: pwm_b1_gpio32 {
 			label = "B1";
-			pwms = <&ledc0 5 0 PWM_POLARITY_NORMAL>;
+			pwms = <&ledc0 4 0 PWM_POLARITY_NORMAL>;
 		};
 		pwm_b2: pwm_b2_gpio33 {
 			label = "B2";
-			pwms = <&ledc0 6 0 PWM_POLARITY_NORMAL>;
+			pwms = <&ledc0 5 0 PWM_POLARITY_NORMAL>;
 		};
 	};
 
@@ -51,7 +51,7 @@
 		};
 		hc12_set: hc12_set {
 			label = "HC12 set";
-			gpios = <&gpio0 18 GPIO_ACTIVE_HIGH>;
+			gpios = <&gpio0 18 GPIO_ACTIVE_LOW>;
 		};
 	};
 
@@ -71,9 +71,9 @@
 &pinctrl {
 	ledc0_custom: ledc0_custom {
 		group1 {
-			pinmux = <LEDC_CH1_GPIO19>, <LEDC_CH2_GPIO21>, // PWM pins
-					 <LEDC_CH3_GPIO22>, <LEDC_CH4_GPIO23>, // Motor A
-					 <LEDC_CH5_GPIO32>, <LEDC_CH6_GPIO33>; // Motor B
+			pinmux = <LEDC_CH0_GPIO19>, <LEDC_CH1_GPIO21>, // PWM pins
+					 <LEDC_CH2_GPIO22>, <LEDC_CH3_GPIO23>, // Motor A
+					 <LEDC_CH4_GPIO32>, <LEDC_CH5_GPIO33>; // Motor B
 			output-enable;
 		};
 	};
@@ -85,6 +85,10 @@
 	status = "okay";
 	#address-cells = <1>;
 	#size-cells = <0>;
+	channel0@0 {
+		reg = <0x0>;
+		timer = <0>;
+	};
 	channel1@1 {
 		reg = <0x1>;
 		timer = <0>;
@@ -105,10 +109,6 @@
 		reg = <0x5>;
 		timer = <0>;
 	};
-	channel6@6 {
-		reg = <0x6>;
-		timer = <0>;
-	};
 };
 
 &uart1 {
@@ -117,7 +117,7 @@
 
 &uart2 {
 	status = "okay";
-	current-speed = <115200>;
+	current-speed = <9600>;
 	pinctrl-0 = <&uart2_default>;
 	pinctrl-names = "default";
 };
