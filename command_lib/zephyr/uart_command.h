@@ -13,8 +13,8 @@
 
 #include "command.h"
 
-#define COMMAND_START ':'
-#define COMMAND_END ';'
+#define COMMAND_START '%'
+#define COMMAND_END '&'
 
 /** @brief Structure containing buffer, position and flag for receiving commands
  */

@@ -22,7 +22,7 @@ void serial_init(struct serial_interface *iface, struct command_writer *writer,
 void serial_enable(struct serial_interface *iface) {
     // Configure state pin
     if (iface->state_pin) {
-        gpio_pin_configure_dt(iface->state_pin, GPIO_OUTPUT_INACTIVE);
+        gpio_pin_configure_dt(iface->state_pin, GPIO_OUTPUT_LOW);
     }
     // Enable uart interrupt
     uart_irq_rx_enable(iface->dev);
