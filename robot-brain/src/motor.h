@@ -18,6 +18,10 @@ struct motor_control {
     const struct pwm_dt_spec en1;
     /* Second enable pin of motor */
     const struct pwm_dt_spec en2;
+    /* Speed step for motor */
+    uint8_t speed_step;
+    /* Motor speed-set interval */
+    k_timeout_t interval;
 };
 
 /**
