@@ -11,7 +11,7 @@
         compatible = "gpio-leds";
         hc12_set: hc12_set {
             label = "HC12 AT set pin";
-            gpios = <&gpio2 3 GPIO_ACTIVE_HIGH>;
+            gpios = <&gpio2 3 GPIO_ACTIVE_LOW>;
         };
         green_led: green_led {
             label = "Green status led";
@@ -33,5 +33,5 @@
 
 &lpuart2 {
 	status = "okay";
-	current-speed = <115200>;
+    current-speed = <9600>;
 };
