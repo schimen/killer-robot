@@ -76,6 +76,10 @@ static void message_handler(void *p1, void *p2, void *p3) {
         case error_command: // an error ocurred!
             // acknowledge command, even though an error occurred
             set_ack(command.id);
+            LOG_WRN(
+                "Warning: received error command (error %d)", 
+                command.value
+            );
             break;
 
         case ack_command: // set ack event when receiving ack
@@ -103,13 +107,14 @@ static void message_handler(void *p1, void *p2, void *p3) {
 
         default: // unrecognized command, send error
             send_error(command, error_unrecognized);
+            LOG_WRN("Warning: Unrecognized command");
             break;
         }
     }
 }
 
 // Define thread for handling incoming messages
-#define MSGTHREAD_SIZE 512
+#define MSGTHREAD_SIZE 1408
 #define MSGTHREAD_PRI 4
 K_THREAD_DEFINE(msg_handler_tid, MSGTHREAD_SIZE,
                 message_handler, NULL, NULL, NULL,

@@ -12,7 +12,7 @@ LOG_MODULE_DECLARE(brain);
 #define WEAPON_SPEED_INTERVAL K_MSEC(20)
 
 // Create threads for gradually controlling motor speed
-#define STACK_SIZE 1024
+#define STACK_SIZE 512
 #define THREAD_PRIORITY 5
 #define NUM_THREADS 3
 // Structs for motor control threads
