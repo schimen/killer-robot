@@ -28,6 +28,9 @@ ERROR_TIMEOUT      = 1
 ERROR_PARSE        = 2
 ERROR_VALUE        = 3
 
+COMMAND_START = b'%'
+COMMAND_END = b'&'
+
 # Dictionary for interfaces
 interfaces = dict()
 
@@ -131,7 +134,7 @@ class Communication:
             # Send over serial
             if type(interface) == Serial:
                 if interface.is_open:
-                    interface.write(bytearray([ord(':'), head(command), value, ord(';')]))                        
+                    interface.write(bytearray([ord(COMMAND_START), head(command), value, ord(COMMAND_END)]))                        
                 else: 
                     print(f'{printable_message} (serial not open)')
             
@@ -171,15 +174,15 @@ class Communication:
                 print('Stopped listening to serial')
                 return None
 
-            if b':' not in serial_buffer:
+            if COMMAND_START not in serial_buffer:
                 # reset serial_buffer if there is no command start
                 serial_buffer = b''
 
             # command beginning and end is in buffer
-            if b':' in serial_buffer and b';' in serial_buffer:
+            if COMMAND_START in serial_buffer and COMMAND_END in serial_buffer:
                 while len(serial_buffer) > 0:
-                    start = serial_buffer.find(b':')
-                    end = serial_buffer.find(b';') + 1
+                    start = serial_buffer.find(COMMAND_START)
+                    end = serial_buffer.find(COMMAND_END) + 1
                     if start >= end:
                         print('received partial command, throw it away')
                         serial_buffer = serial_buffer[start:]
