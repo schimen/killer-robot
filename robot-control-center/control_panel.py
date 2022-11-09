@@ -101,43 +101,26 @@ class ControlOptions(tk.Frame):
         update_button.grid(row=5, column=1)
 
     def update_values(self):
-
-        # limit the values so they do not exceed max-values
-        def limit_value(minimum, maximum, value):
-            if value <= minimum:
-                return minimum   
-
-            elif value >= maximum:
-                return maximum
-
-            return value
-
         # unfocus entries
         control_panel.focus()
 
         # set weapon speed
-        weapon_str = self.weapon_entry.get()
-        if weapon_str.isdigit():
-            max_weapon = 100; min_weapon = -100
-            limited_value = limit_value(min_weapon, max_wepaon, int(weapon_str))
-            weapon_var = limited_value
-            print(f'Weapon speed: {weapon_var}')
+        weapon_var = get_speed(self.weapon_entry)
+        if weapon_var is None:
+            print('Weapon entry needs number')
+            return
 
         # set forward speed
-        forward_str = self.forward_entry.get()
-        if forward_str.isdigit():
-            max_forward = 100; min_forward = 0
-            limited_value = limit_value(min_forward, max_forward, int(forward_str))
-            forward_var = limited_value
-            print(f'Forward speed: {forward_var}')
+        forward_var = get_speed(self.forward_entry)
+        if forward_var is None:
+            print('Forward entry needs number')
+            return
         
         # set bacwkard speed
-        backward_str = self.backward_entry.get()
-        if backward_str.isdigit():
-            max_backward = 100; min_backward = 0
-            limited_value = limit_value(min_backward, max_backward, int(backward_str))
-            backward_var = limited_value
-            print(f'Bacward speed: {backward_var}')
+        backward_var = get_speed(self.backward_entry)
+        if backward_var is None:
+            print('Backward entry needs number')
+            return
 
         # set turning rate
         turnrate_str = self.turnrate_entry.get()
@@ -146,8 +129,8 @@ class ControlOptions(tk.Frame):
             min_turnrate = 0.1; max_turnrate = 2
             limited_value = limit_value(min_turnrate, max_turnrate, float(turnrate_str))
             turn_var = limited_value
-            print(f'Turn fraction: {turn_var}')
         except ValueError:
+            print('Turn fraction needs float')
             return
 
         if self.set_shift_values.get() > 0: # setting alternate speed
@@ -282,6 +265,24 @@ class BluetoothOptions(tk.Frame):
             args=(name, self.bt_connect_cb, self.bt_disconnect_cb),
             daemon=True
         ).start()
+
+# limit the values so they do not exceed max-values
+def limit_value(minimum, maximum, value):
+    if value <= minimum:
+        return minimum   
+
+    elif value >= maximum:
+        return maximum
+
+    return value
+
+def get_speed(entry, min_val=-100, max_val=100):
+    # set weapon speed
+    entry_str = entry.get()
+    if entry_str.isdigit():
+        return limit_value(min_val, max_val, int(entry_str))
+    else:
+        return None
 
 def key_press(event):
     """ called when key is pressed """
