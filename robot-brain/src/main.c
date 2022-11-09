@@ -120,40 +120,10 @@ K_THREAD_DEFINE(msg_handler_tid, MSGTHREAD_SIZE,
                 message_handler, NULL, NULL, NULL,
                 MSGTHREAD_PRI, 0, 0);
 
-static void start_sleep() {
-    // Stop communication
-    k_thread_suspend(msg_handler_tid);
-    peripheral_disable();
-    serial_disable(&hc12_iface);
-    // Turn off motors and weapon
-    motor_off(&motor_a);
-    motor_off(&motor_b);
-    weapon_off(&weapon);
-
-    LOG_INF("Sleep mode on");
-    blink();
-}
-
-static void stop_sleep() {
-    serial_enable(&hc12_iface);
-    peripheral_enable();
-    k_thread_resume(msg_handler_tid);
-    LOG_INF("Sleep mode off");
-    blink();
-}
-
-// Define sleep and wake workers 
-// (sleep and wake device in workthread, not interrupt)
-K_WORK_DEFINE(sleep_worker, start_sleep);
-K_WORK_DEFINE(wake_worker, stop_sleep);
-
-/**
- * @brief Callback for sleep-pin interrupt on sleep
- */
-static void sleep_handler(const struct device *port, struct gpio_callback *cb, uint32_t pins)
-{
-    ARG_UNUSED(port); ARG_UNUSED(cb); ARG_UNUSED(pins);
+static void sleep_worker_func() {
     static int sleep_mode = 0;
+    // 50ms debounce protection!
+    k_msleep(50);
     // Read nsleep pin to see if device should sleep or wake up
     int state = gpio_pin_get_dt(&nsleep);
     if (state < 0) {
@@ -162,16 +132,41 @@ static void sleep_handler(const struct device *port, struct gpio_callback *cb, u
             state, nsleep.port->name, nsleep.pin
         );
     }
-    // Save state so it does not duplicate
-    if (sleep_mode != state) {
-        sleep_mode = state;
+    // Return if sleep mode is equal to state
+    if (sleep_mode == state) {
+        return;
     }
+    // Save state so it does not duplicate
+    sleep_mode = state;
     if (sleep_mode) {
-        k_work_submit(&sleep_worker);
+        // Stop communication
+        k_thread_suspend(msg_handler_tid);
+        serial_disable(&hc12_iface);
+        // Turn off motors and weapon
+        motor_off(&motor_a);
+        motor_off(&motor_b);
+        weapon_off(&weapon);
+        LOG_INF("Sleep mode on");
     }
     else {
-        k_work_submit(&wake_worker);
+        serial_enable(&hc12_iface);
+        k_thread_resume(msg_handler_tid);
+        LOG_INF("Sleep mode off");
     }
+    blink();
+}
+
+// Define sleep worker
+// (sleep and wake device in workthread, not interrupt)
+K_WORK_DEFINE(sleep_worker, sleep_worker_func);
+
+/**
+ * @brief Callback for sleep-pin interrupt on sleep
+ */
+static void sleep_handler(const struct device *port, struct gpio_callback *cb, uint32_t pins)
+{
+    ARG_UNUSED(port); ARG_UNUSED(cb); ARG_UNUSED(pins);
+    k_work_submit(&sleep_worker);
 }
 
 void main(void) {
@@ -200,10 +195,8 @@ void main(void) {
             err, nsleep.port->name, nsleep.pin
         );
     } else {
-        // Start sleep if pin high from start
-        if (gpio_pin_get_dt(&nsleep)) {
-            start_sleep();
-        }
+        // Check for sleep mode at initialization
+        k_work_submit(&sleep_worker);
     }
     err = gpio_pin_interrupt_configure_dt(&nsleep, GPIO_INT_EDGE_BOTH);
     if (err) {
