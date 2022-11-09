@@ -3,6 +3,7 @@
 #include <zephyr/drivers/uart.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/arch_interface.h>
+#include <zephyr/logging/log.h>
 
 #ifdef CONFIG_USB_DEVICE_STACK // Include usb if available
 #include <zephyr/usb/usb_device.h>
@@ -11,9 +12,12 @@
 #include "command.h"
 #include "uart_command.h"
 
-#define NUM_THREADS 10
-#define STACK_SIZE 1024
+#define NUM_THREADS 5
+#define STACK_SIZE 2048
 #define THREAD_PRIORITY 5
+
+// Register logger
+LOG_MODULE_REGISTER(transmitter);
 
 // Create structs for hc12 interface
 struct serial_interface hc12_iface;
@@ -105,6 +109,10 @@ void thread_callback(void *p1, void *p2, void *p3) {
     struct command_data command;
     struct command_data new_command;
     while (get_command(&command) == 0) {
+        LOG_INF(
+            "New command %d (id %d) with value %d", 
+            command.key, command.id, command.value
+        );
         switch (command.key) {
         case error_command: // an error ocurred!
             // acknowledge command, even though an error occurred
@@ -127,7 +135,7 @@ void thread_callback(void *p1, void *p2, void *p3) {
             new_command = command;
             new_command.writer = &hc12_writer;
             // send message and wait for ack
-            send_command_uart(new_command);
+            send_command(new_command);
             if (wait_for_ack(command.id, &receive_time)) {
                 // message timed out, send error back to original sender
                 send_error(command, error_timeout);
@@ -161,4 +169,6 @@ void main(void) {
     // blink led when starting
     blink(&red_led);
     blink(&green_led);
+
+    LOG_INF("Setup done");
 }
