@@ -115,6 +115,9 @@ int set_motor_speed(const struct pwm_dt_spec *en1,
 int set_weapon_speed(const struct pwm_dt_spec *weapon_pin,
                      const struct pwm_dt_spec *unused, uint8_t speed_u) {
     ARG_UNUSED(unused);
+    if (speed_u == 127) {
+        return pwm_set_dt(weapon_pin, WEAPON_PERIOD, 0);
+    }
     int32_t speed = convert_speed(speed_u);
     uint32_t pulse_offset = speed * (WEAPON_PULSE_RANGE / 100);
     uint32_t pulse = WEAPON_PULSE_MID + pulse_offset;
