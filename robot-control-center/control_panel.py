@@ -228,7 +228,7 @@ class DeviceOptions(tk.Frame):
     def update_port_list(self, interval):
         while True:
             self.device_list = list_comports()
-            self.port_combo.set(self.device_list)
+            self.port_combo['values'] = self.device_list
             sleep(interval)
 
 class BluetoothOptions(tk.Frame):
