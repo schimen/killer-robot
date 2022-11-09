@@ -12,7 +12,7 @@
 #include "command.h"
 #include "uart_command.h"
 
-#define NUM_THREADS 5
+#define NUM_THREADS 12
 #define STACK_SIZE 2048
 #define THREAD_PRIORITY 5
 
