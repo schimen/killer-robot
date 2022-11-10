@@ -10,7 +10,7 @@ import atexit
 from threading import Thread
 from queue import Queue
 import asyncio
-from time import time
+from time import time, sleep
 
 CUSTOM_SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0"
 COMMAND_WRITE_UUID  = "12345678-1234-5678-1234-56789abcdef1"
@@ -37,27 +37,39 @@ interfaces = dict()
 class Communication:
     def __init__(self):
         self.interfaces = dict()
-        self.id = 0
+        self.msg_id = 0
         self.incoming_commands = Queue()
         self.outgoing_commands = Queue(maxsize=8)
-        self.ble_client = None
-        self.event_loop = asyncio.get_event_loop()
+        self.bluetooth = BluetoothCommunication(self.incoming_commands)
+        self.serial = SerialCommunication(self.incoming_commands)
         
         # Start thread for sending commands
         Thread(
             target=self.send_commands,
-            daemon=True
         ).start()
 
         # Start thread for printing received commands
         Thread(
             target=self.print_new_commands,
-            daemon=True
+        ).start()
+
+        # Start thread for pinging all interfaces regularly
+        Thread(
+            target=self.ping_all,
         ).start()
         
         # Variables for `send_message`, 
         # for keeping track of earlier messages
         self.old_message = dict()
+
+    def ping_all(self):
+        while True:
+            for interface in self.interfaces:
+                start = time()
+                if interface.send((self.create_head(PING_COMMAND), 1)):
+                    self.run_send_cb(interface, time()-start)
+
+            sleep(2)
 
     def get_interface(self):
         if len(self.interfaces) < 1:
@@ -86,10 +98,10 @@ class Communication:
             del self.interfaces[interface]
 
     def get_message_id(self):
-        self.id += 1
-        if self.id > 31:
-            self.id = 0
-        return self.id
+        self.msg_id += 1
+        if self.msg_id > 31:
+            self.msg_id = 0
+        return self.msg_id
 
     def send_message(self, motor_a, motor_b, motor_w):
         """ send message to transmitter """
@@ -129,38 +141,32 @@ class Communication:
         
         self.outgoing_commands.put_nowait((command, value))
 
+    def create_head(self, command):
+        return command << 5 | self.get_message_id()
+
     def send_commands(self):
         while True:
-            head = lambda command: command << 5 | self.get_message_id()
-            interface = self.get_interface()
-            
+            # Get all new commands
+            command_list = []
             command, value = self.outgoing_commands.get()
-            printable_message = f'command: {command}, value: {str(value).rjust(3)}'
+            command_list.append((self.create_head(command), value))
+            while not self.outgoing_commands.empty():
+                command, value = self.outgoing_commands.get_nowait()
+                #print(f'Send command: {command}, value: {str(value).rjust(3)}')
+                command_list.append((self.create_head(command), value))
 
-            # Send over serial
-            if type(interface) == Serial:
-                if interface.is_open:
-                    interface.write(bytearray([ord(COMMAND_START), head(command), value, ord(COMMAND_END)]))
-                else: 
-                    print(f'{printable_message} (serial not open)')
-            
-            elif type(interface) == BleakClient:
-                if interface.is_connected:
-                    data = [head(command), value]
-                    while (not self.outgoing_commands.empty()) and (len(data) < 8):
-                        command, value = self.outgoing_commands.get_nowait()
-                        data.extend([head(command), value])
-                    try:
-                        start = time()
-                        self.event_loop.run_until_complete(self.gatt_send(data))
-                        self.run_send_cb(interface, time()-start)
-                    except Exception as e:
-                        print(f'Client is already disconnected ({e})')
-
-                else:
-                    print(f'{printable_message} (bluetooth not connected)')
+            # Get an interface to send command through
+            interface = self.get_interface()
+            if interface is None:
+                print('No interfaces available')
             else:
-                print(f'{printable_message} (no interface)')
+                # Send!
+                start = time()
+                if interface.send(*command_list):
+                    self.run_send_cb(interface, time()-start)
+                else: 
+                    print(f'Failed to send commands')
+            
 
     def print_new_commands(self):
         while True:
@@ -168,15 +174,116 @@ class Communication:
             if command == ERROR_COMMAND:
                 print(f'Received error command: id {message_id}, value {value}')
 
-    def read_serial_thread(self, ser):
+
+class BluetoothCommunication:
+    def __init__(self, incoming_queue):
+        self.client = None
+        self.event_loop = asyncio.get_event_loop()
+        self.incoming_queue = incoming_queue
+
+    def bt_notification_cb(self, _, data):
+        if len(data) != 2:
+            return
+        
+        head, value = data
+        key = (0xE0 & head) >> 5
+        address = 0x07 & head
+        print(f'Received command {key} (id: {address}) value: {value}')
+        self.incoming_qeue.put((key, address, value))
+
+    def send(self, *data):
+        if self.client.is_connected:
+            if len(data) > 8:
+                # If there are more than 8 commands, remove the oldest ones
+                data = data[len(data) - 8]
+            
+            command_bytes = [byte for command_data in data for byte in command_data]
+            try:
+                self.event_loop.run_until_complete(self.gatt_send(command_bytes))
+                return True
+            except Exception as e:
+                print(f'Client is already disconnected ({e})')
+        
+        return False
+
+    async def gatt_send(self, data):
+        data_bytes = bytearray(data)
+        await self.client.write_gatt_char(COMMAND_WRITE_UUID, data_bytes)
+
+    async def ble_async_connect(self, name, disconnect_cb):
+        atexit.register(self.disconnect)
+        print('Search for device')
+        device = await find_device(name)
+        if device is None:
+            print("Found no relevant device")
+            return
+        
+        client = BleakClient(device.address, disconnected_callback = disconnect_cb)
+        print(f'Connecting to {device.name} at address {device.address}')
+        await client.connect()
+
+        if client:
+            await client.start_notify(COMMAND_WRITE_UUID, self.bt_notification_cb)
+            return client
+
+        print('Could not connect')
+        return None
+
+    def connect(self, name, connect_cb, disconnect_cb):
+        self.bt_connect_cb = connect_cb
+        self.client = self.event_loop.run_until_complete(self.ble_async_connect(name, disconnect_cb))
+        if type(self.client) == BleakClient:
+            if self.client.is_connected and connect_cb:
+                connect_cb()
+
+    def disconnect(self):
+        if type(self.client) == BleakClient:
+            if self.client.is_connected:
+                print(f'Disconnecting from {self.client.address}')
+                self.event_loop.run_until_complete(self.client.disconnect())
+            else:
+                print('Client is already disconnected')
+        
+        self.client = None
+
+class SerialCommunication:
+    def __init__(self, incoming_queue):
+        self.ser = Serial()
+        atexit.register(self.ser.close)
+        self.incoming_queue = incoming_queue
+        self.listen_id = []
+
+    def send(self, *data):
+        if self.ser.is_open:
+            # Write command to serial interface
+            for command_data in data:
+                self.ser.write(bytearray([
+                    ord(COMMAND_START), 
+                    *command_data,
+                    ord(COMMAND_END)
+                ]))
+            # Get id of all messages sent
+            self.listen_id = [(head & 0x1F) for head, _ in data]
+            start_time = time()
+            while len(self.listen_id) > 0:
+                if time() - start_time > 0.15:
+                    print(f'Waiting for messages {self.listen_id} timed out')
+                    return False
+                sleep(0.005)
+
+            return True
+
+        return False
+
+    def read_serial_thread(self):
         """
         Function that continually reads serial information and prints to terminal
         """
         serial_buffer = b''
-        while ser.is_open:
+        while self.ser.is_open:
             try:
                 # add new characters to buffer
-                serial_buffer += ser.read()
+                serial_buffer += self.ser.read()
 
             except TypeError:
                 # serial was apparently closed
@@ -205,60 +312,28 @@ class Communication:
 
                         command = (head & 0xE0) >> 5
                         message_id = head & 0x1F
-                        self.incoming_commands.put((command, message_id, value))
+                        self.incoming_queue.put((command, message_id, value))
+                        # Ack off message based on ID
+                        if message_id in self.listen_id:
+                            self.listen_id.remove(message_id)
 
                         # command finished, reset
                         serial_buffer = serial_buffer[end:]
 
-    def bt_notification_cb(self, _, data):
-        if len(data) != 2:
-            return
-        
-        head, value = data
-        key = (0xE0 & head) >> 5
-        address = 0x07 & head
-        print(f'Received command {key} (id: {address}) value: {value}')
-        self.incoming_commands.put((key, address, value))
+    def open_serial(self, port, baudrate):
+        self.ser.port = port
+        self.ser.baudrate = baudrate
 
-    async def ble_async_connect(self, name, disconnect_cb):
-        atexit.register(self.ble_disconnect)
-        print('Search for device')
-        device = await find_device(name)
-        if device is None:
-            print("Found no relevant device")
-            return
-        
-        client = BleakClient(device.address, disconnected_callback = disconnect_cb)
-        print(f'Connecting to {device.name} at address {device.address}')
-        await client.connect()
+        try: # Try to open the port
+            print(f'Opening serial at:\nport: {self.ser.port}, baud: {self.ser.baudrate}')
+            self.ser.open()
+            return True
 
-        if client:
-            await client.start_notify(COMMAND_WRITE_UUID, self.bt_notification_cb)
-            return client
+        except SerialException:
+            print(f'Could not open serial port at {self.ser.port} with {self.ser.baudrate}.')
+            print(f'Maybe try one of these: {list_comports()}')
+            return False
 
-        print('could not connect')
-        return None
-
-    def ble_connect(self, name, connect_cb, disconnect_cb):
-        self.bt_connect_cb = connect_cb
-        self.ble_client = self.event_loop.run_until_complete(self.ble_async_connect(name, disconnect_cb))
-        if type(self.ble_client) == BleakClient:
-            if self.ble_client.is_connected and connect_cb:
-                connect_cb()
-
-    def ble_disconnect(self):
-        if type(self.ble_client) == BleakClient:
-            if self.ble_client.is_connected:
-                print(f'Disconnecting from {self.ble_client.address}')
-                self.event_loop.run_until_complete(self.ble_client.disconnect())
-            else:
-                print('Client is already disconnected')
-        
-        self.ble_client = None
-
-    async def gatt_send(self, data):
-        data_bytes = bytearray(data)
-        await self.ble_client.write_gatt_char(COMMAND_WRITE_UUID, data_bytes)
 
 async def find_device(name):
     correct_device = lambda d, _: name in d.name.lower()
@@ -270,22 +345,3 @@ async def find_device(name):
 
 def list_comports():
     return list(port.device for port in comports())
-
-def init_serial():
-    ser = Serial()
-    atexit.register(ser.close)
-    return ser
-
-def open_serial(ser, port, baudrate):
-    ser.port = port
-    ser.baudrate = baudrate
-
-    try: # Try to open the port
-        print(f'Opening serial at:\nport: {ser.port}, baud: {ser.baudrate}')
-        ser.open()
-        return True
-
-    except SerialException:
-        print(f'Could not open serial port at {ser.port} with {ser.baudrate}.')
-        print(f'Maybe try one of these: {list_comports()}')
-        return False

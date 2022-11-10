@@ -11,7 +11,7 @@ import atexit
 from time import sleep
 
 from communication import \
-    list_comports, open_serial, init_serial, Communication
+    list_comports, Communication
 
 # global sets for keeping an eye in the keys (little ugly solution, i know ;( )
 pressed_keys = set()
@@ -173,7 +173,7 @@ class DeviceOptions(tk.Frame):
         label.grid(row=0, column = 1)
         # Update the serial device list every 5 seconds
         threading.Thread(target=self.update_port_list, args=(5,), daemon=True).start()
-        self.ser = init_serial()
+        self.interface = comm.serial
 
         # Settings for transmitter device
         self.port_combo = create_option_combo(
@@ -185,13 +185,19 @@ class DeviceOptions(tk.Frame):
             self, text = 'Open serial', command = self.open_serial
         )
         self.open_button.grid(row=3, column = 1)
+        self.pings = []
+        self.ping_var = tk.StringVar()
+        tk.Label(
+            self, textvariable=self.ping_var, 
+        ).grid(row=3, column=0)
 
     def open_serial(self):
         # Close port if it is already open
-        if self.ser.is_open:
-            comm.remove_interface(self.ser)
-            self.ser.close()
+        if self.interface.ser.is_open:
+            comm.remove_interface(self.interface)
+            self.interface.ser.close()
             print('Closed serial')
+            self.ping_var.set('')
             self.open_button.config(text='Open serial')
             return
         
@@ -200,19 +206,34 @@ class DeviceOptions(tk.Frame):
 
         # Open serial
         baudrate = self.baud_entry.get()
-        if baudrate.isdigit():
-            if open_serial(self.ser, self.port_combo.get(), int(baudrate)):
-                comm.add_interface(self.ser, 1, None)
-                # if the serial opened succesfully, the button will now close the serial
-                self.open_button.config(text=f'Close serial')
-                # print all serial communication to terminal
-                threading.Thread(target=comm.read_serial_thread, args=(self.ser,), daemon=True).start()
+        if not baudrate.isdigit():
+            print('Baudrate must be an integer')
+            return
+
+        if self.interface.open_serial(
+            self.port_combo.get(), int(baudrate)
+            ):
+            comm.add_interface(self.interface, 1, self.send_cb)
+            # If the serial opened succesfully, 
+            # the button will now close the serial
+            self.open_button.config(text=f'Close serial')
+            # print all serial communication to terminal
+            threading.Thread(target=self.interface.read_serial_thread).start()
 
     def update_port_list(self, interval):
         while True:
             self.device_list = list_comports()
             self.port_combo['values'] = self.device_list
             sleep(interval)
+
+    def send_cb(self, time):
+        # Calculate ping based on last average 10 times
+        self.pings.append(time)
+        if len(self.pings) > 10:
+            self.pings.pop(0)
+        ping = sum(self.pings)/len(self.pings)
+        # Set ping at control panel
+        self.ping_var.set(f'Ping: {str(int(ping*1000)).rjust(3)} ms')
 
 class BluetoothOptions(tk.Frame):
     def __init__(self, parent, _):
@@ -221,6 +242,7 @@ class BluetoothOptions(tk.Frame):
         label = tk.Label(self, text="Bluetooth options")
         label.grid(row=0, column = 1)
         self.pings = []
+        self.interface = comm.bluetooth
 
         # Settings for ble device
         self.device_entry = create_option_entry(
@@ -235,8 +257,8 @@ class BluetoothOptions(tk.Frame):
             self, textvariable=self.ping_var, 
         ).grid(row=3, column=0)
 
-    def bt_disconnect_cb(self, client):
-        comm.remove_interface(client)
+    def bt_disconnect_cb(self, *_):
+        comm.remove_interface(self.interface)
         self.ping_var.set('')
         print('Disconnected')
         try:
@@ -246,7 +268,7 @@ class BluetoothOptions(tk.Frame):
             
 
     def bt_connect_cb(self):
-        comm.add_interface(comm.ble_client, 0, self.send_cb)
+        comm.add_interface(self.interface, 0, self.send_cb)
         self.open_button.config(text='Disconnect')
         print('Connected')
 
@@ -255,19 +277,18 @@ class BluetoothOptions(tk.Frame):
         control_panel.focus()
 
         # Disconnect if already connected
-        if comm.ble_client:
-            if comm.ble_client.is_connected:
+        if self.interface.client:
+            if self.interface.client.is_connected:
                 print('Try to disconnect')
                 threading.Thread(
-                    target=comm.ble_disconnect,
+                    target=self.interface.disconnect,
                     daemon=True
                 ).start()
                 return
 
         name = self.device_entry.get()
-        print(name)
         threading.Thread(
-            target=comm.ble_connect,
+            target=self.interface.connect,
             args=(name, self.bt_connect_cb, self.bt_disconnect_cb),
             daemon=True
         ).start()
