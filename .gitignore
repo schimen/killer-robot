@@ -37,10 +37,13 @@ tests/
 # Gerber files
 **/gerber*
 
+# Python 
+**/__pycache__/
+
 # Nix stuff
 shell.nix
 
 # Other
-.envrc
+**/.envrc
 **/.vscode/
 
