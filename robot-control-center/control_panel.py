@@ -202,7 +202,7 @@ class DeviceOptions(tk.Frame):
         baudrate = self.baud_entry.get()
         if baudrate.isdigit():
             if open_serial(self.ser, self.port_combo.get(), int(baudrate)):
-                comm.add_interface(self.ser, 1)
+                comm.add_interface(self.ser, 1, None)
                 # if the serial opened succesfully, the button will now close the serial
                 self.open_button.config(text=f'Close serial')
                 # print all serial communication to terminal
@@ -220,6 +220,7 @@ class BluetoothOptions(tk.Frame):
         tk.Frame.__init__(self, parent)
         label = tk.Label(self, text="Bluetooth options")
         label.grid(row=0, column = 1)
+        self.pings = []
 
         # Settings for ble device
         self.device_entry = create_option_entry(
@@ -229,9 +230,14 @@ class BluetoothOptions(tk.Frame):
             self, text = 'Connect', command = self.bt_connect
         )
         self.open_button.grid(row=3, column = 1)
+        self.ping_var = tk.StringVar()
+        tk.Label(
+            self, textvariable=self.ping_var, 
+        ).grid(row=3, column=0)
 
     def bt_disconnect_cb(self, client):
         comm.remove_interface(client)
+        self.ping_var.set('')
         print('Disconnected')
         try:
             self.open_button.config(text='Connect')
@@ -240,7 +246,7 @@ class BluetoothOptions(tk.Frame):
             
 
     def bt_connect_cb(self):
-        comm.add_interface(comm.ble_client, 0)
+        comm.add_interface(comm.ble_client, 0, self.send_cb)
         self.open_button.config(text='Disconnect')
         print('Connected')
 
@@ -265,6 +271,16 @@ class BluetoothOptions(tk.Frame):
             args=(name, self.bt_connect_cb, self.bt_disconnect_cb),
             daemon=True
         ).start()
+    
+    def send_cb(self, time):
+        # Calculate ping based on last average 10 times
+        self.pings.append(time)
+        if len(self.pings) > 10:
+            self.pings.pop(0)
+        ping = sum(self.pings)/len(self.pings)
+        # Set ping at control panel
+        self.ping_var.set(f'Ping: {str(int(ping*1000)).rjust(3)} ms')
+
 
 # limit the values so they do not exceed max-values
 def limit_value(minimum, maximum, value):

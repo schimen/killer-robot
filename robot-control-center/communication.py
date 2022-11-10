@@ -65,13 +65,19 @@ class Communication:
 
         return tuple(self.interfaces.items())[0][0]
 
-    def add_interface(self, interface, priority):
+    def run_send_cb(self, interface, time):
+        if interface in self.interfaces:
+            cb_func =  self.interfaces[interface][1]
+            if cb_func is not None:
+                cb_func(time)
+
+    def add_interface(self, interface, priority, send_cb):
         # Save interface object and a corresponding priority and busy flag
-        self.interfaces[interface] = priority
+        self.interfaces[interface] = (priority, send_cb)
         # Sort interfaces by priority
         sorted_iface_items = sorted(
             self.interfaces.items(), 
-            key=lambda item: item[1]
+            key=lambda item: item[1][0]
         )
         self.interfaces = dict(sorted_iface_items)
         
@@ -134,7 +140,7 @@ class Communication:
             # Send over serial
             if type(interface) == Serial:
                 if interface.is_open:
-                    interface.write(bytearray([ord(COMMAND_START), head(command), value, ord(COMMAND_END)]))                        
+                    interface.write(bytearray([ord(COMMAND_START), head(command), value, ord(COMMAND_END)]))
                 else: 
                     print(f'{printable_message} (serial not open)')
             
@@ -145,7 +151,9 @@ class Communication:
                         command, value = self.outgoing_commands.get_nowait()
                         data.extend([head(command), value])
                     try:
+                        start = time()
                         self.event_loop.run_until_complete(self.gatt_send(data))
+                        self.run_send_cb(interface, time()-start)
                     except Exception as e:
                         print(f'Client is already disconnected ({e})')
 
@@ -157,7 +165,8 @@ class Communication:
     def print_new_commands(self):
         while True:
             command, message_id, value = self.incoming_commands.get()
-            print(f'New incoming command: {command}, id: {message_id}, value: {value}')
+            if command == ERROR_COMMAND:
+                print(f'Received error command: id {message_id}, value {value}')
 
     def read_serial_thread(self, ser):
         """
@@ -249,9 +258,7 @@ class Communication:
 
     async def gatt_send(self, data):
         data_bytes = bytearray(data)
-        start = time()
         await self.ble_client.write_gatt_char(COMMAND_WRITE_UUID, data_bytes)
-        print(f'Sent command in {(time()-start)*1000} ms')
 
 async def find_device(name):
     correct_device = lambda d, _: name in d.name.lower()
