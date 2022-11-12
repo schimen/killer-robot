@@ -428,7 +428,6 @@ def calculate_speed(keys):
 
     if 'shift' in keys: # go reverse!
         # invert speed
-        motor_w = -1*motor_w
         motor_a = -1*motor_a
         motor_b = -1*motor_b
 
