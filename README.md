@@ -9,12 +9,12 @@ Rupert regularly undergoes changes, and so far there have been to versions of Ru
 ### Rupert
 (*[Branch](https://github.com/schimen/killer-robot/tree/rupert-h2021)*)
 
-<img rupert_logo src=./images/rupert.jpg width=200>
+<img rupert_logo src=./images/rupert.jpg width=600>
 
 ### Señor Rupert jr
 (*[Branch](https://github.com/schimen/killer-robot/tree/rupert-h2022)*)
 
-<img rupert_logo src=./images/senor_rupert.jpg width=200>
+<img rupert_logo src=./images/senor_rupert.jpg width=600>
 
 ## Projects
 This repository consists of differenct projects that have different tasks in controlling the robot.
