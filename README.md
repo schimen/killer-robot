@@ -1,8 +1,20 @@
-# killer-robot
+# Killer robot
 This repository contains all code and circuit for the robot **Rupert**, competing in [RoboWars](https://omegav.no/robotkrig) at [Omega Verksted](https://omegav.no/).
 
+<img rupert_logo src=./images/rupert_logo.png width=200>
+
 ## Rupert
-TODO: Add pictures and description of Rupert
+Rupert regularly undergoes changes, and so far there have been to versions of Rupert. The first Rupert competing in Robowars autumn 2021, and Señor Rupert jr competing in robowars autumn 2022.
+
+### Rupert
+(*[Branch](https://github.com/schimen/killer-robot/tree/rupert-h2021)*)
+
+<img rupert_logo src=./images/rupert.jpg width=200>
+
+### Señor Rupert jr
+(*[Branch](https://github.com/schimen/killer-robot/tree/rupert-h2022)*)
+
+<img rupert_logo src=./images/senor_rupert.jpg width=200>
 
 ## Projects
 This repository consists of differenct projects that have different tasks in controlling the robot.
