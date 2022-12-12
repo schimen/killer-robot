@@ -218,7 +218,7 @@ class DeviceOptions(tk.Frame):
             # the button will now close the serial
             self.open_button.config(text=f'Close serial')
             # print all serial communication to terminal
-            threading.Thread(target=self.interface.read_serial_thread).start()
+            threading.Thread(target=self.interface.read_serial_thread, daemon=True).start()
 
     def update_port_list(self, interval):
         while True:
@@ -282,7 +282,6 @@ class BluetoothOptions(tk.Frame):
                 print('Try to disconnect')
                 threading.Thread(
                     target=self.interface.disconnect,
-                    daemon=True
                 ).start()
                 return
 
@@ -291,6 +290,7 @@ class BluetoothOptions(tk.Frame):
             target=self.interface.connect,
             args=(name, self.bt_connect_cb, self.bt_disconnect_cb),
             daemon=True
+
         ).start()
     
     def send_cb(self, time):
