@@ -21,25 +21,25 @@
 			label = "PWM1";
 			pwms = <&ledc0 0 0 PWM_POLARITY_NORMAL>;
 		};
-		pwm2: pwm2_gpio_gpio21 {
+		pwm2: pwm2_gpio21 {
 			label = "PWM2";
 			pwms = <&ledc0 1 0 PWM_POLARITY_NORMAL>;
 		};
 		pwm_a1: pwm_a1_gpio22 {
 			label = "A1";
-			pwms = <&ledc0 2 0 PWM_POLARITY_NORMAL>;
+			pwms = <&ledc0 10 0 PWM_POLARITY_NORMAL>;
 		};
 		pwm_a2: pwm_a2_gpio23 {
 			label = "A2";
-			pwms = <&ledc0 3 0 PWM_POLARITY_NORMAL>;
+			pwms = <&ledc0 11 0 PWM_POLARITY_NORMAL>;
 		};
 		pwm_b1: pwm_b1_gpio32 {
 			label = "B1";
-			pwms = <&ledc0 4 0 PWM_POLARITY_NORMAL>;
+			pwms = <&ledc0 12 0 PWM_POLARITY_NORMAL>;
 		};
 		pwm_b2: pwm_b2_gpio33 {
 			label = "B2";
-			pwms = <&ledc0 5 0 PWM_POLARITY_NORMAL>;
+			pwms = <&ledc0 13 0 PWM_POLARITY_NORMAL>;
 		};
 	};
 
@@ -71,9 +71,9 @@
 &pinctrl {
 	ledc0_custom: ledc0_custom {
 		group1 {
-			pinmux = <LEDC_CH0_GPIO19>, <LEDC_CH1_GPIO21>, // PWM pins
-					 <LEDC_CH2_GPIO22>, <LEDC_CH3_GPIO23>, // Motor A
-					 <LEDC_CH4_GPIO32>, <LEDC_CH5_GPIO33>; // Motor B
+			pinmux = <LEDC_CH0_GPIO19>,  <LEDC_CH1_GPIO21>, // PWM pins
+					 <LEDC_CH10_GPIO22>, <LEDC_CH11_GPIO23>, // Motor A
+					 <LEDC_CH12_GPIO32>, <LEDC_CH13_GPIO33>; // Motor B
 			output-enable;
 		};
 	};
@@ -93,20 +93,20 @@
 		reg = <0x1>;
 		timer = <0>;
 	};
-	channel2@2 {
-		reg = <0x2>;
+	channel10@a {
+		reg = <0xa>;
 		timer = <0>;
 	};
-	channel3@3 {
-		reg = <0x3>;
+	channel11@b {
+		reg = <0xb>;
 		timer = <0>;
 	};
-	channel4@4 {
-		reg = <0x4>;
+	channel12@c {
+		reg = <0xc>;
 		timer = <0>;
 	};
-	channel5@5 {
-		reg = <0x5>;
+	channel13@d {
+		reg = <0xd>;
 		timer = <0>;
 	};
 };

@@ -21,7 +21,7 @@ static struct k_thread motor_threads[NUM_THREADS];
 K_THREAD_STACK_ARRAY_DEFINE(stacks, NUM_THREADS, STACK_SIZE);
 
 // Define weapon and motor pwm periods
-static const uint32_t MOTOR_PERIOD = PWM_MSEC(20U);
+static const uint32_t MOTOR_PERIOD = PWM_MSEC(1U);
 static const uint32_t WEAPON_PERIOD = PWM_MSEC(20U);
 #define WEAPON_PULSE_MIN PWM_MSEC(1U)
 #define WEAPON_PULSE_MAX PWM_MSEC(2U)
@@ -115,9 +115,6 @@ int set_motor_speed(const struct pwm_dt_spec *en1,
 int set_weapon_speed(const struct pwm_dt_spec *weapon_pin,
                      const struct pwm_dt_spec *unused, uint8_t speed_u) {
     ARG_UNUSED(unused);
-    if (speed_u == 127) {
-        return pwm_set_dt(weapon_pin, WEAPON_PERIOD, 0);
-    }
     int32_t speed = convert_speed(speed_u);
     uint32_t pulse_offset = speed * (WEAPON_PULSE_RANGE / 100);
     uint32_t pulse = WEAPON_PULSE_MID + pulse_offset;
