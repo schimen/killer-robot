@@ -5,6 +5,7 @@
 #include <zephyr/logging/log.h>
 
 #define ACK_TIMEOUT K_MSEC(250)
+#define COMMAND_TIMEOUT K_MSEC(5000)
 
 #define MSG_SIZE 4
 #define MAX_MSGS 10

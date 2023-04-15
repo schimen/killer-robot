@@ -66,7 +66,15 @@ static void message_handler(void *p1, void *p2, void *p3) {
     ARG_UNUSED(p1); ARG_UNUSED(p2); ARG_UNUSED(p3);
     // Receive incoming commands
     struct command_data command;
-    while (get_command(&command) == 0) {
+    while (true) {
+        if (get_command(&command) != 0) {
+            // Did not receive command before timeout, turn motors and weapon off
+            motor_off(&motor_a);
+            motor_off(&motor_b);
+            weapon_off(&weapon);
+            LOG_WRN("Command timed out, turn motor and weapon off");
+            continue;
+        }
         LOG_INF(
             "New command %d (id %d) with value %d", 
             command.key, command.id, command.value

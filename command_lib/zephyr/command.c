@@ -43,7 +43,7 @@ void add_command(struct command_data command) {
 }
 
 int get_command(struct command_data *command) {
-    return k_msgq_get(&incoming_commands, command, K_FOREVER);
+    return k_msgq_get(&incoming_commands, command, COMMAND_TIMEOUT);
 }
 
 int send_command(struct command_data command) {
