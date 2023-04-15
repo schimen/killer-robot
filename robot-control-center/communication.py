@@ -236,7 +236,7 @@ class BluetoothCommunication:
 
         # Set up client object and connect to device
         client = BleakClient(device.address, disconnected_callback = disconnect_cb)
-        print(f'Connecting to {device.name} at address {device.address}')
+        print(f'Connecting to {device.name} at address {device.address} (RSSI: {device.rssi} dBm)')
         await client.connect()
 
         if client is None:
