@@ -34,6 +34,9 @@ build/
 # Local tests
 tests/
 
+# Folder for stuff to be ignored :)
+ignore/
+
 # Gerber files
 **/gerber*
 
