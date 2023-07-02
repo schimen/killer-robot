@@ -1,0 +1,6 @@
+[manifest]
+path = firmware
+file = west.yml
+
+[zephyr]
+base = zephyr

@@ -1,4 +1,4 @@
-#include "command.h"
+#include <command_lib/command.h>
 
 // Register logger for command-lib
 LOG_MODULE_REGISTER(command);

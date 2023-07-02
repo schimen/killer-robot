@@ -46,6 +46,10 @@ ignore/
 # Nix stuff
 shell.nix
 
+# West environment
+zephyr/
+modules/
+
 # Other
 **/.envrc
 **/.vscode/

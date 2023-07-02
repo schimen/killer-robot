@@ -1,4 +1,4 @@
-#include "uart_command.h"
+#include <command_lib/uart_command.h>
 
 // Use logger from command.c
 LOG_MODULE_DECLARE(command);

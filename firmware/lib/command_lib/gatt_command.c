@@ -1,4 +1,4 @@
-#include "gatt_command.h"
+#include <command_lib/gatt_command.h>
 
 // Use logger from command.c
 LOG_MODULE_DECLARE(command);

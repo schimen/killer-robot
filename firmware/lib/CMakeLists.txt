@@ -1,0 +1,2 @@
+add_subdirectory_ifdef(CONFIG_COMMAND_LIB command_lib)
+

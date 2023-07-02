@@ -1,0 +1,4 @@
+menu "Libraries"
+rsource "command_lib/Kconfig"
+endmenu
+
