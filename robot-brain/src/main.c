@@ -1,7 +1,9 @@
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pwm.h>
+#include <zephyr/drivers/spi.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/drivers/sensor.h>
 
 #include "gatt_command.h"
 #include "uart_command.h"
@@ -34,6 +36,8 @@ struct motor_control motor_b = {
 struct motor_control weapon = {
     .en1 = PWM_DT_SPEC_GET(DT_ALIAS(weapon)),
 };
+
+const struct device *const icm20948 = DEVICE_DT_GET_ONE(invensense_icm20948);
 
 // Create workthread
 #define WORKTHREAD_SIZE 512
@@ -231,7 +235,26 @@ void main(void) {
         );
     }
 
+    // Init motion sensor
+    err = device_is_ready(icm20948);
+	if (err) {
+        LOG_ERR(
+            "Error %d: failed to initialize icm20948 sensor", err
+        );
+	}
+
     // Blink led when ready
     blink_wt(&led0);
     LOG_INF("Setup finished");
+
+    // struct icm20948_sensor *acc = &sensor_data.accelerometer;
+    // struct icm20948_sensor *gyro = &sensor_data.gyroscope;
+    // while (1) {
+    //     icm20948_read_accelerometer(acc);
+    //     // LOG_INF("Accel x: %d, y: %d, z: %d", acc->x, acc->y, acc->z);
+    //     icm20948_read_gyroscope(gyro);
+    //     //LOG_INF("Gyro x: %d, y: %d, z: %d", gyro->x, gyro->y, gyro->z);
+    //     printk("ax:%d,ay:%d,az:%d,gx:%d,gy:%d,gz:%d\n", acc->x, acc->y, acc->z, gyro->x, gyro->y, gyro->z);
+    //     k_msleep(50);
+    // }
 }

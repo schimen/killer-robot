@@ -1,0 +1,3 @@
+if SENSOR
+rsource "icm20948/Kconfig"
+endif

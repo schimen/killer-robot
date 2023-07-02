@@ -1,0 +1,7 @@
+config ICM20948
+	bool "Custom ICM20948 sensor driver"
+	default y
+	depends on DT_HAS_INVENSENSE_ICM20948_ENABLED
+	select SPI
+	help
+	  Enable ICM20948 SPI sensor
