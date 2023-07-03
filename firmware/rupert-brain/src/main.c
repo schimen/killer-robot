@@ -236,11 +236,11 @@ void main(void) {
     }
 
     // Init motion sensor
-    err = device_is_ready(motion_sensor);
-	if (err) {
+	if (!device_is_ready(motion_sensor)) {
         LOG_ERR(
             "Error %d: failed to initialize icm20948 sensor", err
         );
+        return;
 	}
 
     // Blink led when ready
