@@ -3,6 +3,7 @@
 #define DRIVERS_SENSOR_ICM20948_SPI_H_
 
 #include <zephyr/types.h>
+#include <zephyr/drivers/spi.h>
 
 /**
  * @brief SPI transmit/receive wrapper function used to interface with ICM20948.

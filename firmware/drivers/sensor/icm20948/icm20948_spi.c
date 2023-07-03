@@ -1,6 +1,5 @@
 #include "icm20948_spi.h"
 #include "icm20948_reg.h"
-#include <zephyr/drivers/spi.h>
 
 int icm20948_spi_transceive(const struct spi_dt_spec *bus, uint8_t *buffer,
                             uint8_t len) {
