@@ -1,0 +1,5 @@
+# Rupert PCB board configuration
+
+config BOARD_RUPERT_PCB
+	bool "Rupert PCB board"
+	depends on SOC_ESP32
