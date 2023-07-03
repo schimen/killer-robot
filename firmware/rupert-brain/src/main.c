@@ -22,6 +22,7 @@ struct serial_interface hc12_iface;
 struct command_writer hc12_writer;
 const struct gpio_dt_spec hc12_set = GPIO_DT_SPEC_GET(DT_ALIAS(hc12_set), gpios);
 const struct device *hc12_device = DEVICE_DT_GET(DT_ALIAS(hc12));
+const struct device *motion_sensor = DEVICE_DT_GET(DT_ALIAS(motion_sensor));
 
 struct motor_control motor_a = {
     .en1 = PWM_DT_SPEC_GET(DT_ALIAS(a1)),
@@ -37,7 +38,6 @@ struct motor_control weapon = {
     .en1 = PWM_DT_SPEC_GET(DT_ALIAS(weapon)),
 };
 
-const struct device *const icm20948 = DEVICE_DT_GET_ONE(invensense_icm20948);
 
 // Create workthread
 #define WORKTHREAD_SIZE 512
@@ -236,7 +236,7 @@ void main(void) {
     }
 
     // Init motion sensor
-    err = device_is_ready(icm20948);
+    err = device_is_ready(motion_sensor);
 	if (err) {
         LOG_ERR(
             "Error %d: failed to initialize icm20948 sensor", err
@@ -247,14 +247,28 @@ void main(void) {
     blink_wt(&led0);
     LOG_INF("Setup finished");
 
-    // struct icm20948_sensor *acc = &sensor_data.accelerometer;
-    // struct icm20948_sensor *gyro = &sensor_data.gyroscope;
-    // while (1) {
-    //     icm20948_read_accelerometer(acc);
-    //     // LOG_INF("Accel x: %d, y: %d, z: %d", acc->x, acc->y, acc->z);
-    //     icm20948_read_gyroscope(gyro);
-    //     //LOG_INF("Gyro x: %d, y: %d, z: %d", gyro->x, gyro->y, gyro->z);
-    //     printk("ax:%d,ay:%d,az:%d,gx:%d,gy:%d,gz:%d\n", acc->x, acc->y, acc->z, gyro->x, gyro->y, gyro->z);
-    //     k_msleep(50);
-    // }
+    // Test sensor values
+	struct sensor_value temp;
+	struct sensor_value accel[3];
+	struct sensor_value gyro[3];
+	int rc = sensor_sample_fetch(motion_sensor);
+
+	if (rc == 0) {
+		sensor_channel_get(motion_sensor, SENSOR_CHAN_ACCEL_XYZ, accel);
+		sensor_channel_get(motion_sensor, SENSOR_CHAN_GYRO_XYZ, gyro);
+		sensor_channel_get(motion_sensor, SENSOR_CHAN_AMBIENT_TEMP, &temp);
+		printk("%g Cel\n"
+		       "  accel %f %f %f m/s/s\n"
+		       "  gyro  %f %f %f rad/s\n",
+		       sensor_value_to_double(&temp),
+		       sensor_value_to_double(&accel[0]),
+		       sensor_value_to_double(&accel[1]),
+		       sensor_value_to_double(&accel[2]),
+		       sensor_value_to_double(&gyro[0]),
+		       sensor_value_to_double(&gyro[1]),
+		       sensor_value_to_double(&gyro[2]));
+	} else {
+		LOG_ERR("Error: sample fetch failed (%d)", rc);
+	}
+    k_msleep(1000);
 }
