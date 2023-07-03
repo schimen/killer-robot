@@ -34,6 +34,6 @@ To install Zephyr in this project, make sure west and other dependencies from th
 After installing and becoming familiar with the framework, you can install dependencies used by our hardware:
 - Install ESP32 dependencies with `west espressif install`. Alternatively, follow [this guide](https://www.zephyrproject.org/zephyr-rtos-on-esp32/).
 
-The Rupert firmware can now for example be built by the command `west build -b esp32 firmware/rupert-brain` and then flashed with the command `west flash`.
+The Rupert firmware can now for example be built by the command `west build -b rupert_pcb firmware/rupert-brain` and then flashed with the command `west flash`.
 
 
