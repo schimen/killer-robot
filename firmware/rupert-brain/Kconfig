@@ -1,0 +1,7 @@
+menu "Zephyr"
+source "Kconfig.zephyr"
+endmenu
+
+module = BRAIN
+module-str = BRAIN
+source "subsys/logging/Kconfig.template.log_config"

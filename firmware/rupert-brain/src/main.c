@@ -5,8 +5,8 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/drivers/sensor.h>
 
-#include "gatt_command.h"
-#include "uart_command.h"
+#include <command_lib/gatt_command.h>
+#include <command_lib/uart_command.h>
 #include "motor.h"
 
 // Register logger
