@@ -11,19 +11,19 @@
 #define ICM20948_DEFAULT_ADDRESS 0xEA
 
 struct icm20948_data {
-	int16_t accel_x;
-	int16_t accel_y;
-	int16_t accel_z;
+    int16_t accel_x;
+    int16_t accel_y;
+    int16_t accel_z;
 
-	int16_t gyro_x;
-	int16_t gyro_y;
-	int16_t gyro_z;
+    int16_t gyro_x;
+    int16_t gyro_y;
+    int16_t gyro_z;
 
-	int16_t magnet_x;
-	int16_t magnet_y;
-	int16_t magnet_z;
+    int16_t magnet_x;
+    int16_t magnet_y;
+    int16_t magnet_z;
 
-	int16_t temp;
+    int16_t temp;
 };
 
 #endif

@@ -33,23 +33,23 @@ struct icm20948_data {
     int16_t temp;
 };
 
-struct icm420948_config {
+struct icm20948_config {
     struct spi_dt_spec spi;
 };
 
 /*
     Conversion functions are not yet tested and probably wrong, fix these later
 */
-#define SENSOR_G 2
-#define SENSOR_DPS 250
+#define ICM20948_SENS_G 2
+#define ICM20948_SENS_DPS_DPS 250
 static void icm20948_convert_accel(struct sensor_value *val, int16_t raw_val) {
-    const int16_t sensitivity = ((2 ^ 16) / 2) / SENSOR_G;
+    const int16_t sensitivity = ((1 << 16) / 2) / ICM20948_SENS_G;
     val->val1 = raw_val / sensitivity;
     val->val2 = raw_val % sensitivity;
 }
 
 static void icm20948_convert_gyro(struct sensor_value *val, int16_t raw_val) {
-    const int16_t sensitivity = ((2 ^ 16) / 2) / SENSOR_DPS;
+    const int16_t sensitivity = ((1 << 16) / 2) / ICM20948_SENS_DPS_DPS;
     val->val1 = raw_val / sensitivity;
     val->val2 = raw_val % sensitivity;
 }
@@ -75,7 +75,7 @@ static int icm20948_channel_get(const struct device *dev,
         icm20948_convert_accel(&val[2], data->accel_z);
         break;
     case SENSOR_CHAN_ACCEL_X:
-        icm_20948_convert_accel(val, data->accel_x);
+        icm20948_convert_accel(val, data->accel_x);
         break;
     case SENSOR_CHAN_ACCEL_Y:
         icm20948_convert_accel(val, data->accel_y);
@@ -114,13 +114,15 @@ static int icm20948_channel_get(const struct device *dev,
 static int icm20948_sample_fetch(const struct device *dev,
                                  enum sensor_channel chan) {
     struct icm20948_data *data = dev->data;
+    const struct icm20948_config *config = dev->config;
+    const struct spi_dt_spec *bus = &config->spi;
     int err;
     uint8_t buffer[15];
 
     // Set address to start reading from
     buffer[0] = REG_ACCEL_XOUT_H | 0x80;
-    icm20948_set_correct_bank(0);
-    err = icm20948_spi_transceive((uint8_t *)buffer, 14);
+    icm20948_set_correct_bank(bus, 0);
+    err = icm20948_spi_transceive(bus, (uint8_t *)buffer, 14);
     if (err) {
         return err;
     }
@@ -138,66 +140,72 @@ static int icm20948_sample_fetch(const struct device *dev,
     return 0;
 }
 
-int icm20948_init() {
+int icm20948_init(const struct device *dev) {
+    // Init SPI
+    const struct icm20948_config *config = dev->config;
+    const struct spi_dt_spec *bus = &config->spi;
+    if (!spi_is_ready_dt(bus)) {
+        LOG_ERR("SPI not ready");
+        return -ENODEV;
+    }
     // Reset unit with best avialble clock
-    icm20948_write_register(0, REG_PWR_MGMT_1, 0xC1);
+    icm20948_write_register(bus, 0, REG_PWR_MGMT_1, 0xC1);
     // Make sure chip is reset
     k_msleep(100);
     // Exit sleep mode
-    icm20948_write_register(0, REG_PWR_MGMT_1, 0x01);
+    icm20948_write_register(bus, 0, REG_PWR_MGMT_1, 0x01);
     // Enable ODR start-time alignment
-    icm20948_write_register(2, REG_ODR_ALIGN_EN, 0x01);
+    icm20948_write_register(bus, 2, REG_ODR_ALIGN_EN, 0x01);
     // Gyro Config
-    icm20948_write_register(2, REG_GYRO_SMPLRT_DIV, 0x00);
-    icm20948_write_register(2, REG_GYRO_CONFIG_1, 0x01);
+    icm20948_write_register(bus, 2, REG_GYRO_SMPLRT_DIV, 0x00);
+    icm20948_write_register(bus, 2, REG_GYRO_CONFIG_1, 0x01);
     // Accel Config
-    icm20948_write_register(2, REG_ACCEL_SMPLRT_DIV_1, 0x00);
-    icm20948_write_register(2, REG_ACCEL_SMPLRT_DIV_2, 0x00);
-    icm20948_write_register(2, REG_ACCEL_CONFIG, 0x01);
+    icm20948_write_register(bus, 2, REG_ACCEL_SMPLRT_DIV_1, 0x00);
+    icm20948_write_register(bus, 2, REG_ACCEL_SMPLRT_DIV_2, 0x00);
+    icm20948_write_register(bus, 2, REG_ACCEL_CONFIG, 0x01);
     // Set serial interface to SPI only
     uint8_t value;
-    icm20948_read_register(0, REG_USER_CTRL, &value);
+    icm20948_read_register(bus, 0, REG_USER_CTRL, &value);
     value |= 0x10;
-    icm20948_write_register(0, REG_USER_CTRL, value);
+    icm20948_write_register(bus, 0, REG_USER_CTRL, value);
     // Check that address is correct
-    icm20948_read_register(0, REG_WHO_AM_I, &value);
+    icm20948_read_register(bus, 0, REG_WHO_AM_I, &value);
     if (value != ICM20948_DEFAULT_ADDRESS) {
         LOG_ERR("Error: Unexpected address at sensor. Expected 0x%02X, "
                 "received 0x%02X",
                 ICM20948_DEFAULT_ADDRESS, value);
-        return -1;
+        return -EIO;
     }
-    LOG_INF("Sensor address: 0x%02X", value);
     return 0;
 }
 
-void icm20948_read_accelerometer(struct icm20948_data *data) {
-    uint8_t buffer[7];
-    // Start reading from first relevant address
-    buffer[0] = REG_ACCEL_XOUT_H | 0x80;
-    icm20948_spi_transceive(buffer, 7);
-    data->accel_x = ((int16_t)buffer[1] << 8) + buffer[2];
-    data->accel_y = ((int16_t)buffer[3] << 8) + buffer[4];
-    data->accel_z = ((int16_t)buffer[5] << 8) + buffer[6];
-}
+// void icm20948_read_accelerometer(struct icm20948_data *data) {
+//     uint8_t buffer[7];
+//     // Start reading from first relevant address
+//     buffer[0] = REG_ACCEL_XOUT_H | 0x80;
+//     icm20948_spi_transceive(buffer, 7);
+//     data->accel_x = ((int16_t)buffer[1] << 8) + buffer[2];
+//     data->accel_y = ((int16_t)buffer[3] << 8) + buffer[4];
+//     data->accel_z = ((int16_t)buffer[5] << 8) + buffer[6];
+// }
 
-void icm20948_read_gyroscope(struct icm20948_data *data) {
-    uint8_t buffer[7];
-    // Start reading from first relevant address
-    buffer[0] = REG_GYRO_XOUT_H | 0x80;
-    icm20948_spi_transceive(buffer, 7);
-    data->gyro_x = ((int16_t)buffer[1] << 8) + buffer[2];
-    data->gyro_y = ((int16_t)buffer[3] << 8) + buffer[4];
-    data->gyro_z = ((int16_t)buffer[5] << 8) + buffer[6];
-}
+// void icm20948_read_gyroscope(struct icm20948_data *data) {
+//     uint8_t buffer[7];
+//     // Start reading from first relevant address
+//     buffer[0] = REG_GYRO_XOUT_H | 0x80;
+//     icm20948_spi_transceive(buffer, 7);
+//     data->gyro_x = ((int16_t)buffer[1] << 8) + buffer[2];
+//     data->gyro_y = ((int16_t)buffer[3] << 8) + buffer[4];
+//     data->gyro_z = ((int16_t)buffer[5] << 8) + buffer[6];
+// }
 
-void icm20948_read_temperature(struct icm20948_data *data) {
-    uint8_t buffer[3];
-    // Start reading from first relevant address
-    buffer[0] = REG_TEMP_OUT_H | 0x80;
-    icm20948_spi_transceive(buffer, 3);
-    data->temp = ((uint16_t)buffer[1] << 8) + buffer[2];
-}
+// void icm20948_read_temperature(struct icm20948_data *data) {
+//     uint8_t buffer[3];
+//     // Start reading from first relevant address
+//     buffer[0] = REG_TEMP_OUT_H | 0x80;
+//     icm20948_spi_transceive(buffer, 3);
+//     data->temp = ((uint16_t)buffer[1] << 8) + buffer[2];
+// }
 
 static const struct sensor_driver_api icm20948_driver_api = {
     .sample_fetch = icm20948_sample_fetch,
@@ -211,16 +219,11 @@ static const struct sensor_driver_api icm20948_driver_api = {
 #define ICM20948_DEFINE(inst)                                                  \
     static struct icm20948_data icm20948_data_##inst;                          \
     static const struct icm20948_config icm20948_config_##inst = {             \
-        .spi = SPI_DT_SPEC_INST_GET(inst, ICM20948_SPI_CONFIG, 0U);            \
+        .spi = SPI_DT_SPEC_INST_GET(inst, ICM20948_SPI_CONFIG, 0U),            \
     };                                                                         \
     SENSOR_DEVICE_DT_INST_DEFINE(                                              \
-        inst, icm_20948_init, NULL, &icm20948_data_##inst,                     \
-        &icm20948_config_##inst, POST_KERNEL, CONFIG_SENSOR_INIT_PRIORITY,    \
+        inst, icm20948_init, NULL, &icm20948_data_##inst,                      \
+        &icm20948_config_##inst, POST_KERNEL, CONFIG_SENSOR_INIT_PRIORITY,     \
         &icm20948_driver_api);
-
-
-#if DT_NUM_INST_STATUS_OKAY(DT_DRV_COMPAT) == 0
-#error"ICM20948 not defined in DTS"
-#endif
 
 DT_INST_FOREACH_STATUS_OKAY(ICM20948_DEFINE)
