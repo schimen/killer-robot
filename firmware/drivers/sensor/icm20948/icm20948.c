@@ -1,16 +1,11 @@
 #define DT_DRV_COMPAT invensense_icm20948
 
-#include <zephyr/device.h>
-#include <zephyr/drivers/gpio.h>
-#include <zephyr/drivers/spi.h>
-#include <zephyr/kernel.h>
-#include <zephyr/sys/util.h>
-#include <zephyr/types.h>
-
-#include <zephyr/drivers/sensor.h>
-#include <zephyr/drivers/spi.h>
 #include <zephyr/init.h>
+#include <zephyr/types.h>
+#include <zephyr/device.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/drivers/spi.h>
+#include <zephyr/drivers/sensor.h>
 #include <zephyr/sys/byteorder.h>
 
 // #include "icm20948.h"
@@ -38,7 +33,8 @@ struct icm20948_config {
 };
 
 /*
-    Conversion functions are not yet tested and probably wrong, fix these later
+    Conversion functions used in this driver
+    TODO: check and fix these so the conversion is correct
 */
 #define ICM20948_SENS_G 2
 #define ICM20948_SENS_DPS_DPS 250
@@ -63,7 +59,7 @@ static void icm20948_convert_temp(struct sensor_value *val, int16_t raw_val) {
  * @brief Channel get function for ICM20948.
  * For information, see documentation for sensor_channel_get() function.
  */
-static int icm20948_channel_get(const struct device *dev,
+int icm20948_channel_get(const struct device *dev,
                                 enum sensor_channel chan,
                                 struct sensor_value *val) {
     struct icm20948_data *data = dev->data;
@@ -111,7 +107,7 @@ static int icm20948_channel_get(const struct device *dev,
  * @brief Sample fetch function for ICM20948.
  * For information see, see documentation for sensor_sample_fetch() function.
  */
-static int icm20948_sample_fetch(const struct device *dev,
+int icm20948_sample_fetch(const struct device *dev,
                                  enum sensor_channel chan) {
     struct icm20948_data *data = dev->data;
     const struct icm20948_config *config = dev->config;
@@ -124,12 +120,13 @@ static int icm20948_sample_fetch(const struct device *dev,
     icm20948_set_correct_bank(bus, 0);
     err = icm20948_spi_transceive(bus, (uint8_t *)buffer, 14);
     if (err) {
+        LOG_ERR("ERROR: Failed to read data from sensor (%d)", err);
         return err;
     }
 
     int16_t *received_data = (int16_t *)&buffer[1];
-
-    // NB!!! Sjekk om denne dataen stemmer
+    
+    // TODO: check that this data is correct
     data->accel_x = sys_be16_to_cpu(received_data[0]);
     data->accel_y = sys_be16_to_cpu(received_data[1]);
     data->accel_z = sys_be16_to_cpu(received_data[2]);
@@ -179,37 +176,9 @@ int icm20948_init(const struct device *dev) {
     return 0;
 }
 
-// void icm20948_read_accelerometer(struct icm20948_data *data) {
-//     uint8_t buffer[7];
-//     // Start reading from first relevant address
-//     buffer[0] = REG_ACCEL_XOUT_H | 0x80;
-//     icm20948_spi_transceive(buffer, 7);
-//     data->accel_x = ((int16_t)buffer[1] << 8) + buffer[2];
-//     data->accel_y = ((int16_t)buffer[3] << 8) + buffer[4];
-//     data->accel_z = ((int16_t)buffer[5] << 8) + buffer[6];
-// }
-
-// void icm20948_read_gyroscope(struct icm20948_data *data) {
-//     uint8_t buffer[7];
-//     // Start reading from first relevant address
-//     buffer[0] = REG_GYRO_XOUT_H | 0x80;
-//     icm20948_spi_transceive(buffer, 7);
-//     data->gyro_x = ((int16_t)buffer[1] << 8) + buffer[2];
-//     data->gyro_y = ((int16_t)buffer[3] << 8) + buffer[4];
-//     data->gyro_z = ((int16_t)buffer[5] << 8) + buffer[6];
-// }
-
-// void icm20948_read_temperature(struct icm20948_data *data) {
-//     uint8_t buffer[3];
-//     // Start reading from first relevant address
-//     buffer[0] = REG_TEMP_OUT_H | 0x80;
-//     icm20948_spi_transceive(buffer, 3);
-//     data->temp = ((uint16_t)buffer[1] << 8) + buffer[2];
-// }
-
-static const struct sensor_driver_api icm20948_driver_api = {
-    .sample_fetch = icm20948_sample_fetch,
-    .channel_get = icm20948_channel_get,
+static const struct sensor_driver_api icm20948_api = {
+    .sample_fetch = &icm20948_sample_fetch,
+    .channel_get = &icm20948_channel_get,
 };
 
 #define ICM20948_SPI_CONFIG                                                    \
@@ -221,9 +190,9 @@ static const struct sensor_driver_api icm20948_driver_api = {
     static const struct icm20948_config icm20948_config_##inst = {             \
         .spi = SPI_DT_SPEC_INST_GET(inst, ICM20948_SPI_CONFIG, 0U),            \
     };                                                                         \
-    SENSOR_DEVICE_DT_INST_DEFINE(                                              \
+    DEVICE_DT_INST_DEFINE(                                                     \
         inst, icm20948_init, NULL, &icm20948_data_##inst,                      \
         &icm20948_config_##inst, POST_KERNEL, CONFIG_SENSOR_INIT_PRIORITY,     \
-        &icm20948_driver_api);
+        &icm20948_api);
 
 DT_INST_FOREACH_STATUS_OKAY(ICM20948_DEFINE)

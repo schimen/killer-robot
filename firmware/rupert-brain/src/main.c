@@ -240,17 +240,17 @@ void main(void) {
         LOG_ERR(
             "Error %d: failed to initialize icm20948 sensor", err
         );
-        return;
 	}
 
     // Blink led when ready
-    blink_wt(&led0);
+    blink_wt();
     LOG_INF("Setup finished");
 
     // Test sensor values
 	struct sensor_value temp;
 	struct sensor_value accel[3];
 	struct sensor_value gyro[3];
+
 	int rc = sensor_sample_fetch(motion_sensor);
 
 	if (rc == 0) {
