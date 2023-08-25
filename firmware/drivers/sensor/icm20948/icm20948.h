@@ -26,4 +26,8 @@ struct icm20948_data {
     int16_t temp;
 };
 
+struct icm20948_config {
+    struct spi_dt_spec spi;
+};
+
 #endif
