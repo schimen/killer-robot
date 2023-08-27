@@ -221,32 +221,4 @@ void main(void) {
     // Blink led when ready
     blink_wt();
     LOG_INF("Setup finished");
-
-    // Test sensor values
-    struct sensor_value temp;
-    struct sensor_value accel[3];
-    struct sensor_value gyro[3];
-
-    while (true) {
-        int rc = sensor_sample_fetch(motion_sensor);
-
-        if (rc == 0) {
-            sensor_channel_get(motion_sensor, SENSOR_CHAN_ACCEL_XYZ, accel);
-            sensor_channel_get(motion_sensor, SENSOR_CHAN_GYRO_XYZ, gyro);
-            sensor_channel_get(motion_sensor, SENSOR_CHAN_AMBIENT_TEMP, &temp);
-            printk("%g Cel\n"
-                   "  accel %f %f %f m/s/s\n"
-                   "  gyro  %f %f %f rad/s\n",
-                   sensor_value_to_double(&temp),
-                   sensor_value_to_double(&accel[0]),
-                   sensor_value_to_double(&accel[1]),
-                   sensor_value_to_double(&accel[2]),
-                   sensor_value_to_double(&gyro[0]),
-                   sensor_value_to_double(&gyro[1]),
-                   sensor_value_to_double(&gyro[2]));
-        } else {
-            LOG_ERR("Error: sample fetch failed (%d)", rc);
-        }
-        k_msleep(1000);
-    }
 }

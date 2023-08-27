@@ -5,3 +5,7 @@ config ICM20948
 	select SPI
 	help
 	  Enable ICM20948 SPI sensor
+
+config ICM20948_DEBUG_SERVICE
+	bool "Debug gatt service for ICM20948 raw data"
+	default n
