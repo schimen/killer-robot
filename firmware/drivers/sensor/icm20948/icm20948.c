@@ -15,28 +15,27 @@
 LOG_MODULE_REGISTER(ICM20948, CONFIG_SENSOR_LOG_LEVEL);
 
 #define ICM20948_DEFAULT_ADDRESS 0xEA
+#define ICM20948_ACCEL_RANGE 2048 // At +-16G sensitivity
+#define ICM20948_GYRO_RANGE 16    // At +-2000 dps sensitivity
+#define ICM20948_TEMP_RANGE 334
 
 /*
     Conversion functions used in this driver
     TODO: check and fix these so the conversion is correct
 */
-#define ICM20948_SENS_G 2
-#define ICM20948_SENS_DPS_DPS 250
-static void icm20948_convert_accel(struct sensor_value *val, int16_t raw_val) {
-    const int16_t sensitivity = ((1 << 16) / 2) / ICM20948_SENS_G;
-    val->val1 = raw_val / sensitivity;
-    val->val2 = raw_val % sensitivity;
+static void icm20948_convert_accel(struct sensor_value *val, uint16_t raw_val) {
+    val->val1 = raw_val / ICM20948_ACCEL_RANGE;
+    val->val2 = raw_val % ICM20948_ACCEL_RANGE;
 }
 
-static void icm20948_convert_gyro(struct sensor_value *val, int16_t raw_val) {
-    const int16_t sensitivity = ((1 << 16) / 2) / ICM20948_SENS_DPS_DPS;
-    val->val1 = raw_val / sensitivity;
-    val->val2 = raw_val % sensitivity;
+static void icm20948_convert_gyro(struct sensor_value *val, uint16_t raw_val) {
+    val->val1 = raw_val / ICM20948_GYRO_RANGE;
+    val->val2 = raw_val % ICM20948_GYRO_RANGE;
 }
 
-static void icm20948_convert_temp(struct sensor_value *val, int16_t raw_val) {
-    val->val1 = (raw_val / 334) + 21;
-    val->val2 = raw_val % 334;
+static void icm20948_convert_temp(struct sensor_value *val, uint16_t raw_val) {
+    val->val1 = ((raw_val - 21) / ICM20948_TEMP_RANGE) + 21;
+    val->val2 = (raw_val - 21) % ICM20948_TEMP_RANGE;
 }
 
 /**
@@ -98,7 +97,7 @@ static int icm20948_sample_fetch(const struct device *dev,
     const struct spi_dt_spec *bus = &config->spi;
     int err;
     uint8_t rx_buffer[15];
-    uint8_t tx_buffer[sizeof(rx_buffer)];
+    uint8_t tx_buffer[sizeof(rx_buffer)] = {0};
 
     // Set address to start reading from
     tx_buffer[0] = REG_ACCEL_XOUT_H | 0x80;
@@ -109,9 +108,7 @@ static int icm20948_sample_fetch(const struct device *dev,
         return err;
     }
 
-    int16_t *received_data = (int16_t *)&rx_buffer[1];
-
-    // TODO: check that this data is correct
+    uint16_t *received_data = (uint16_t *)&rx_buffer[1];
     data->accel_x = sys_be16_to_cpu(received_data[0]);
     data->accel_y = sys_be16_to_cpu(received_data[1]);
     data->accel_z = sys_be16_to_cpu(received_data[2]);
@@ -130,7 +127,20 @@ static int icm20948_init(const struct device *dev) {
         LOG_ERR("SPI not ready");
         return -ENODEV;
     }
-    // Reset unit with best avialble clock
+    uint8_t value;
+    // Check that we have contact by checking that address is correct
+    icm20948_read_register(bus, 0, REG_WHO_AM_I, &value);
+    if (value != ICM20948_DEFAULT_ADDRESS) {
+        LOG_ERR("Error: Unexpected address at sensor. Expected 0x%02X, "
+                "received 0x%02X",
+                ICM20948_DEFAULT_ADDRESS, value);
+        return -EIO;
+    }
+    // Set serial interface to SPI only
+    icm20948_read_register(bus, 0, REG_USER_CTRL, &value);
+    value |= 0x10;
+    icm20948_write_register(bus, 0, REG_USER_CTRL, value);
+    // Reset unit with best available clock
     icm20948_write_register(bus, 0, REG_PWR_MGMT_1, 0xC1);
     // Make sure chip is reset
     k_msleep(100);
@@ -140,24 +150,13 @@ static int icm20948_init(const struct device *dev) {
     icm20948_write_register(bus, 2, REG_ODR_ALIGN_EN, 0x01);
     // Gyro Config
     icm20948_write_register(bus, 2, REG_GYRO_SMPLRT_DIV, 0x00);
-    icm20948_write_register(bus, 2, REG_GYRO_CONFIG_1, 0x01);
+    // Set gyro full scale to 2000dps and disable DLPF
+    icm20948_write_register(bus, 2, REG_GYRO_CONFIG_1, 0x06);
     // Accel Config
     icm20948_write_register(bus, 2, REG_ACCEL_SMPLRT_DIV_1, 0x00);
     icm20948_write_register(bus, 2, REG_ACCEL_SMPLRT_DIV_2, 0x00);
-    icm20948_write_register(bus, 2, REG_ACCEL_CONFIG, 0x01);
-    // Set serial interface to SPI only
-    uint8_t value;
-    icm20948_read_register(bus, 0, REG_USER_CTRL, &value);
-    value |= 0x10;
-    icm20948_write_register(bus, 0, REG_USER_CTRL, value);
-    // Check that address is correct
-    icm20948_read_register(bus, 0, REG_WHO_AM_I, &value);
-    if (value != ICM20948_DEFAULT_ADDRESS) {
-        LOG_ERR("Error: Unexpected address at sensor. Expected 0x%02X, "
-                "received 0x%02X",
-                ICM20948_DEFAULT_ADDRESS, value);
-        return -EIO;
-    }
+    // Set accel full scale to 16g and disable DLPF
+    icm20948_write_register(bus, 2, REG_ACCEL_CONFIG, 0x06);
     return 0;
 }
 

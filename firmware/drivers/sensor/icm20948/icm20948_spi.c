@@ -16,7 +16,7 @@ int icm20948_spi_transceive(const struct spi_dt_spec *bus, uint8_t *tx_buffer,
         .len = len,
     };
     const struct spi_buf_set rx = {
-        .buffers = &tx_buf,
+        .buffers = &rx_buf,
         .count = 1,
     };
     return spi_transceive_dt(bus, &tx, &rx);
