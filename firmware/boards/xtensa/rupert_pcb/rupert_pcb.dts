@@ -169,7 +169,7 @@
 };
 
 &uart2 {
-	status = "okay";
+	status = "disabled";
 	current-speed = <9600>;
 	pinctrl-0 = <&uart2_default>;
 	pinctrl-names = "default";

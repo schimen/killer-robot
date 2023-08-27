@@ -7,7 +7,6 @@
 
 #include "motor.h"
 #include <command_lib/gatt_command.h>
-#include <command_lib/uart_command.h>
 
 // Register logger
 LOG_MODULE_REGISTER(brain);
@@ -17,12 +16,7 @@ const struct gpio_dt_spec led0 = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 const struct gpio_dt_spec nsleep = GPIO_DT_SPEC_GET(DT_ALIAS(nsleep), gpios);
 struct gpio_callback sleep_callback;
 
-// Serial interface (HC12)
-struct serial_interface hc12_iface;
-struct command_writer hc12_writer;
-const struct gpio_dt_spec hc12_set =
-    GPIO_DT_SPEC_GET(DT_ALIAS(hc12_set), gpios);
-const struct device *hc12_device = DEVICE_DT_GET(DT_ALIAS(hc12));
+// Sensor
 const struct device *motion_sensor = DEVICE_DT_GET(DT_ALIAS(motion_sensor));
 
 struct motor_control motor_a = {
@@ -149,14 +143,12 @@ static void sleep_worker_func() {
     if (sleep_mode) {
         // Stop communication
         k_thread_suspend(msg_handler_tid);
-        serial_disable(&hc12_iface);
         // Turn off motors and weapon
         motor_off(&motor_a);
         motor_off(&motor_b);
         weapon_off(&weapon);
         LOG_INF("Sleep mode on");
     } else {
-        serial_enable(&hc12_iface);
         k_thread_resume(msg_handler_tid);
         LOG_INF("Sleep mode off");
     }
@@ -189,9 +181,6 @@ void main(void) {
 
     // Init motor control
     motor_init(&motor_a, &motor_b, &weapon);
-
-    // Initialize serial interface (HC12)
-    serial_init(&hc12_iface, &hc12_writer, hc12_device, &hc12_set);
 
     // Start bluetooth service
     peripheral_enable();
