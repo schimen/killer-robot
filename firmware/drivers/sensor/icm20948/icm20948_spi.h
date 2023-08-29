@@ -49,4 +49,24 @@ int icm20948_read_register(const struct spi_dt_spec *bus, uint8_t bank,
  */
 void icm20948_set_correct_bank(const struct spi_dt_spec *bus, uint8_t bank);
 
+/**
+ * @brief Write to register on AK09916 via SPI
+ *
+ * @param bus SPI bus
+ * @param reg Address to the register
+ * @param data Data that will be written to the register
+ * @return Value from icm20948_spi_transceive()
+ */
+int ak09916_write_register(const struct spi_dt_spec *bus, uint8_t reg, uint8_t data);
+
+/**
+ * @brief Read from register on AK09916 via SPI 
+ *
+ * @param bus SPI bus
+ * @param reg Address to the register
+ * @param data Pointer to the byte where the result should be written
+ * @return Value from icm20948_spi_transceive()
+ */
+int ak09916_read_register(const struct spi_dt_spec *bus, uint8_t reg, uint8_t *data);
+
 #endif

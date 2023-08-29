@@ -17,7 +17,7 @@ RIGHT_MOTOR_COMMAND = 4
 measurements = []
 
 def debug_callback(_, data):
-    debug_info = unpack('< q HHH HHH HHH H xxxx', data)
+    debug_info = unpack('< q hhh hhh hhh h xxxx', data)
     measurements.append(debug_info)
 
 async def write_command(client, key, value):

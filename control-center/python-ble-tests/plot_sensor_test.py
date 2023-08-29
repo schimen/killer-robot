@@ -5,8 +5,10 @@ filename = 'test.npy'
 with open(filename, 'rb') as f:
     data = np.load(f)
 
-ACCEL_RANGE = 2048 # +-16g
-GYRO_RANGE = 16 # +-2000dps
+MAX_VAL = 2**15
+ACCEL_RANGE = MAX_VAL/16
+GYRO_RANGE = MAX_VAL/2000
+MAGN_RANGE = MAX_VAL/4900
 
 # Extract and convert values
 timestamp = (data[:, 0] - data[0, 0])/1000
@@ -16,9 +18,9 @@ accel_z = data[:, 3]/ACCEL_RANGE
 gyro_x = data[:, 4]/GYRO_RANGE
 gyro_y = data[:, 5]/GYRO_RANGE
 gyro_z = data[:, 6]/GYRO_RANGE
-mag_x = data[:, 7]
-mag_y = data[:, 8]
-mag_z = data[:, 9]
+mag_x = data[:, 7]/MAGN_RANGE
+mag_y = data[:, 8]/MAGN_RANGE
+mag_z = data[:, 9]/MAGN_RANGE
 temp = 21 + (data[:, 10] - 21)/334
 
 # Print some statistics about measurements
@@ -28,7 +30,7 @@ print(f'{filename} contains {len(data)} samples. They were sampled at a ' + \
       f'{max(timestamp)} seconds.')
 
 # Plot values
-fig, (ax_acc, ax_gyr, ax_mag, ax_temp) = plt.subplots(4, 1)
+_, (ax_acc, ax_gyr, ax_mag, ax_temp) = plt.subplots(4, 1)
 ax_acc.plot(timestamp, accel_x, label='X accel')
 ax_acc.plot(timestamp, accel_y, label='Y accel')
 ax_acc.plot(timestamp, accel_z, label='Z accel')
@@ -39,6 +41,14 @@ ax_mag.plot(timestamp, mag_x, label='X mag')
 ax_mag.plot(timestamp, mag_y, label='Y mag')
 ax_mag.plot(timestamp, mag_z, label='Z mag')
 ax_temp.plot(timestamp, temp, label='Temperature')
+ax_acc.set_xlabel('Time [s]')
+ax_acc.set_ylabel('Acceleration [g]')
+ax_gyr.set_xlabel('Time [s]')
+ax_gyr.set_ylabel('Rotation [dps]')
+ax_mag.set_xlabel('Time [s]')
+ax_mag.set_ylabel(r'Magnetix flux density [$\mu T$]')
+ax_temp.set_xlabel('Time [s]')
+ax_temp.set_ylabel(r'Temperature [$\degree C$]')
 ax_acc.legend()
 ax_gyr.legend()
 ax_mag.legend()
