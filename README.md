@@ -16,6 +16,11 @@ Rupert regularly undergoes changes, and so far there have been to versions of Ru
 
 <img rupert_logo src=./images/senor_rupert.jpg width=600>
 
+### Captain Rupert
+(*[Branch](https://github.com/schimen/killer-robot/tree/rupert-v2023)*)
+
+<img rupert_logo src=./images/captain_rupert.jpg width=600>
+
 ## Projects
 This repository consists of differenct projects that have different tasks in controlling the robot.
 The different projects are:
