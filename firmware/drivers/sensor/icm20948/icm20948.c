@@ -182,15 +182,18 @@ static int icm20948_init(const struct device *dev) {
     icm20948_write_register(bus, 0, REG_USER_CTRL, 0x20);
     // Set I2C clock to 345.6 kHz, 46.67% duty cycle
     icm20948_write_register(bus, 3, REG_I2C_MST_CTRL, 0x07);
+    // Enable delay control on slave 0
+    icm20948_write_register(bus,  3, REG_I2C_MST_DELAY_CTRL, 0x01);
     // Reset AK09916
     ak09916_write_register(bus, REG_CNTL3, 0x01);
     k_msleep(100);
     // Set address and register to start reading from
     icm20948_write_register(bus, 3, REG_I2C_SLV0_ADDR, 0x80 | AK09916_DEFAULT_ADDRESS);
-    icm20948_write_register(bus, 3, REG_I2C_SLV0_REG, 0x00);
+    icm20948_write_register(bus, 3, REG_I2C_SLV0_REG, 0x01);
     // Enable read data from slave 0 and read 1 byte
     icm20948_write_register(bus, 3, REG_I2C_SLV0_CTRL, 0x81);
     icm20948_read_register(bus, 0, REG_EXT_SLV_SENS_DATA_00, &value);
+    k_msleep(100);
     // Check that default ID on AK09916 is correct
     ak09916_read_register(bus, REG_WIA2, &value);
     if (value != AK09916_DEFAULT_ID) {

@@ -65,7 +65,7 @@ int ak09916_write_register(const struct spi_dt_spec *bus, uint8_t reg, uint8_t d
     err |= icm20948_write_register(bus, 3, REG_I2C_SLV0_REG, reg);
     // Set data to be written
     err |= icm20948_write_register(bus, 3, REG_I2C_SLV0_DO, data);
-    k_msleep(50);
+    k_msleep(100);
     return err == 0 ? 0 : -1;
 }
 
@@ -77,7 +77,7 @@ int ak09916_read_register(const struct spi_dt_spec *bus, uint8_t reg, uint8_t *d
     icm20948_write_register(bus, 3, REG_I2C_SLV0_REG, reg);
     // Enable read data from slave 0 and read 1 byte
     icm20948_write_register(bus, 3, REG_I2C_SLV0_CTRL, 0x81);
-    k_msleep(50);
+    k_msleep(100);
     // Read data from I2C
     err = icm20948_read_register(bus, 0, REG_EXT_SLV_SENS_DATA_00, data);
     return err;
