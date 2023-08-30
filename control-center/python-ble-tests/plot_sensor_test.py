@@ -1,8 +1,17 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from argparse import ArgumentParser
 
-filename = 'test.npy'
-with open(filename, 'rb') as f:
+parser = ArgumentParser(
+    prog='Plot test',
+    description='Plot data from sensor test',
+)
+parser.add_argument('--filename',
+    type=str, default='test.npy',
+    help='Filename of sensor data'
+)
+test_name = parser.parse_args().filename
+with open(test_name, 'rb') as f:
     data = np.load(f)
 
 MAX_VAL = 2**15
@@ -25,7 +34,7 @@ temp = 21 + (data[:, 10] - 21)/334
 
 # Print some statistics about measurements
 sample_f = int(round(len(data)/max(timestamp), 0))
-print(f'{filename} contains {len(data)} samples. They were sampled at a ' + \
+print(f'{test_name} contains {len(data)} samples. They were sampled at a ' + \
       f'sample rate of ca {sample_f} Hz and were measured for ' + \
       f'{max(timestamp)} seconds.')
 
