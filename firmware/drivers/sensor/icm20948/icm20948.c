@@ -135,9 +135,9 @@ static int icm20948_sample_fetch(const struct device *dev,
     data->gyro_y = sys_be16_to_cpu(received_data[4]);
     data->gyro_z = sys_be16_to_cpu(received_data[5]);
     data->temp = sys_be16_to_cpu(received_data[6]);
-    data->magn_x = sys_be16_to_cpu(received_data[7]);
-    data->magn_y = sys_be16_to_cpu(received_data[8]);
-    data->magn_z = sys_be16_to_cpu(received_data[9]);
+    data->magn_x = sys_le16_to_cpu(received_data[7]);
+    data->magn_y = sys_le16_to_cpu(received_data[8]);
+    data->magn_z = sys_le16_to_cpu(received_data[9]);
     return 0;
 }
 
