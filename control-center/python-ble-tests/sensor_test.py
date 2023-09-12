@@ -4,6 +4,7 @@ from time import time
 from struct import unpack, calcsize
 from aioconsole import ainput
 import numpy as np
+import matplotlib.pyplot as plt
 from argparse import ArgumentParser
 
 MODEL_NBR_UUID =        "00002a24-0000-1000-8000-00805f9b34fb"
@@ -15,11 +16,63 @@ PING_COMMAND = 2
 LEFT_MOTOR_COMMAND = 3
 RIGHT_MOTOR_COMMAND = 4
 
+MAX_VAL = 2**15
+ACCEL_RANGE = MAX_VAL/16
+GYRO_RANGE = MAX_VAL/2000
+MAGN_RANGE = MAX_VAL/4900
+
 measurements = []
 
 def debug_callback(_, data):
     debug_info = unpack('< q hhh hhh hhh h xxxx', data)
     measurements.append(debug_info)
+
+async def live_plot_task():
+    # Create plot
+    plt.ion()
+    _, axs = plt.subplots(3, 1)
+    ax_acc, ax_gyr, ax_mag = axs
+    # Plot settings
+    ax_acc.set_ylabel('Acceleration [g]')
+    ax_gyr.set_ylabel('Rotation [dps]')
+    ax_mag.set_ylabel(r'Magnetix flux density [$\mu T$]')
+    for ax in axs:
+        ax.set_xlabel('Time [s]')
+        ax.grid()
+
+    plt.show()
+
+    # Live plot
+    while True:
+        if len(measurements) <= 0:
+            await asyncio.sleep(1)
+            continue
+        
+        # Extract data
+        data = np.array(measurements)
+        time = (data[:, 0] - data[0, 0])/1000
+        # Get last 10 seconds of data
+        start_time = time[-1] - 10
+        area = time > start_time
+
+        data = data[area, :]
+        time = time[area]
+        accel = data[:, 1:4]/ACCEL_RANGE
+        gyro = data[:, 4:7]/GYRO_RANGE
+        mag = data[:, 7:10]/MAGN_RANGE
+
+        # Plot accel, gyro and magnetometer data
+        senses = (accel, gyro, mag)
+        for i, sensor in enumerate(('accel', 'gyro', 'mag')):
+            ax = axs[i]
+            ax.clear()
+            for j, dir in enumerate('XYZ'):
+                ax.plot(time, senses[i][:, j], label=f'{dir} {sensor}')
+
+            ax.legend()
+
+        plt.pause(0.1)
+        await asyncio.sleep(0.1)
 
 async def write_command(client, key, value):
     if write_command.id >= 32:
@@ -116,13 +169,17 @@ async def do_test(client, test_string):
 async def main():
     parser = ArgumentParser(
         prog='Sensor test',
-        description='Do a test woth rupert and save sensor data',
+        description='Do a test with rupert and save sensor data',
     )
     parser.add_argument('--type',
         type=str, default='test',
         help='Test type. choose from test, silent, stages and spinning'
     )
-    test_name = parser.parse_args().type
+    parser.add_argument('--live-plot',
+        action='store_true',
+        help='Set this flag to enable live plotting of data'
+    )
+    args = parser.parse_args()
 
     correct_device = lambda d, _: 'rupert' in d.name.lower()
     device = await BleakScanner.find_device_by_filter(
@@ -134,6 +191,10 @@ async def main():
         return
     
     print(f'Found device: {device.name} ({device.address})')
+
+    if args.live_plot:
+        plot_task = asyncio.create_task(live_plot_task())
+
     async with BleakClient(device.address) as client:
         # Check if debug characteristic is enabled
         debug_characteristic = client.services.get_characteristic(
@@ -145,9 +206,10 @@ async def main():
             await client.start_notify(DEBUG_READ_UUID, debug_callback)
 
         ping_task = asyncio.create_task(ping_continously(client))
-        await do_test(client, test_name)
+        await do_test(client, args.type)
         ping_task.cancel() 
 
+    plot_task.cancel()
     print('Program finished')
     
 
