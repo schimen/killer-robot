@@ -29,7 +29,7 @@
 		hc12-set = &hc12_set;
 		nfault = &nfault;
 		nsleep = &nsleep;
-		motion-sensor = &spi2;
+		motion-sensor = &motion_sensor;
 	};
 
 	chosen {
@@ -169,7 +169,7 @@
 };
 
 &uart2 {
-	status = "okay";
+	status = "disabled";
 	current-speed = <9600>;
 	pinctrl-0 = <&uart2_default>;
 	pinctrl-names = "default";
@@ -200,7 +200,7 @@
 	pinctrl-0 = <&spim2_default>;
 	pinctrl-names = "default";
 	cs-gpios = <&gpio0 15 GPIO_ACTIVE_LOW>;
-	icm20948@0 {
+	motion_sensor: icm20948@0 {
 		compatible = "invensense,icm20948";
 		spi-max-frequency = <1000000>;
 		reg = <0>;

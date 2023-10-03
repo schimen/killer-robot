@@ -42,6 +42,7 @@ ignore/
 
 # Python 
 **/__pycache__/
+*.npy
 
 # Nix stuff
 shell.nix

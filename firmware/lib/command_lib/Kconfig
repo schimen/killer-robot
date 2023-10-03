@@ -3,6 +3,8 @@ config COMMAND_LIB
 
 config COMMAND_UART
 	bool "Use command lib with uart"
+	default n
 
 config COMMAND_GATT
 	bool "Use command lib with gatt"
+	default n

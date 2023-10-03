@@ -19,11 +19,15 @@ struct icm20948_data {
     int16_t gyro_y;
     int16_t gyro_z;
 
-    int16_t magnet_x;
-    int16_t magnet_y;
-    int16_t magnet_z;
+    int16_t magn_x;
+    int16_t magn_y;
+    int16_t magn_z;
 
     int16_t temp;
+};
+
+struct icm20948_config {
+    struct spi_dt_spec spi;
 };
 
 #endif

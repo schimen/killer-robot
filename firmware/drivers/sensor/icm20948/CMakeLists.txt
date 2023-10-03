@@ -1,2 +1,3 @@
 zephyr_library()
 zephyr_library_sources(icm20948.c icm20948_spi.c)
+zephyr_library_sources_ifdef(CONFIG_ICM20948_DEBUG_SERVICE icm20948_debug_service.c)
