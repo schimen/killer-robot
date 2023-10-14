@@ -34,10 +34,8 @@ struct motor_control weapon = {
 };
 
 // Create workthread
-#define WORKTHREAD_SIZE 512
-#define WORKTHREAD_PRIO 5
-K_THREAD_STACK_DEFINE(workthread_area, WORKTHREAD_SIZE);
-struct k_work_q work_q;
+K_THREAD_STACK_DEFINE(main_workthread_area, 512);
+static struct k_work_q work_q;
 
 /**
  * @brief Blink led0
@@ -176,8 +174,8 @@ void main(void) {
 
     // Init and start workqueue
     k_work_queue_init(&work_q);
-    k_work_queue_start(&work_q, workthread_area, WORKTHREAD_SIZE,
-                       WORKTHREAD_PRIO, NULL);
+    k_work_queue_start(&work_q, main_workthread_area,
+                       K_THREAD_STACK_SIZEOF(main_workthread_area), 5, NULL);
 
     // Init motor control
     motor_init(&motor_a, &motor_b, &weapon);
