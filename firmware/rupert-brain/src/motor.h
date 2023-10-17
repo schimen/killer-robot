@@ -25,28 +25,36 @@ struct motor_control {
 };
 
 /**
- * @brief Initialize threads and structs for motor control
+ * @brief Initialize threads and structs for dc motor
  *
- * @param motor_a motor_control struct for motor a
- * @param motor_b motor_control struct for motor b
- * @param motor_w motor_control struct for weapon motor
+ * @param motor motor_control struct
+ * @param motor_index index of motor, start with 0 and add 1 for each motor
+ * initialized
  */
-void motor_init(struct motor_control *motor_a, struct motor_control *motor_b,
-                struct motor_control *motor_w);
+void dc_motor_init(struct motor_control *motor, int motor_index);
 
 /**
- * @brief Set 0 duty cycle to motor
- * 
+ * @brief Initialize threads and structs for brushless motor
+ *
+ * @param motor motor_control struct
+ * @param motor_index index of motor, start with 0 and add 1 for each motor
+ * initialized
+ */
+void bl_motor_init(struct motor_control *motor, int motor_index);
+
+/**
+ * @brief Set 0 duty cycle to dc motor
+ *
  * @param motor motor_control struct of relevant motor
  */
-void motor_off(struct motor_control *motor);
+void dc_motor_off(struct motor_control *motor);
 
 /**
- * @brief Set 0 duty cycle to wepon
- * 
- * @param motor motor_control struct of relevant weapon
+ * @brief Set 0 speed to brushless motor
+ *
+ * @param motor motor_control struct of relevant motor
  */
-void weapon_off(struct motor_control *weapon);
+void bl_motor_off(struct motor_control *motor);
 
 /**
  * @brief Set speed of a motor
@@ -66,11 +74,11 @@ void set_speed(struct motor_control *motor, uint8_t speed_u);
  * @param speed_u Speed represented in unsigned format
  * @return int Return status according to `pwm_set_dt` function.
  */
-int set_motor_speed(const struct pwm_dt_spec *en1,
-                    const struct pwm_dt_spec *en2, uint8_t speed_u);
+int set_dc_motor_speed(const struct pwm_dt_spec *en1,
+                       const struct pwm_dt_spec *en2, uint8_t speed_u);
 
 /**
- * @brief Set speed of brushless weapon motor via ESC.
+ * @brief Set speed of brushless motor via ESC.
  *   (This function is intended to be used as a callback function
  *    in motor_control struct)
  *
@@ -79,8 +87,8 @@ int set_motor_speed(const struct pwm_dt_spec *en1,
  * @param speed_u Speed represented in unsigned format
  * @return int Return status according to `pwm_set_dt` function.
  */
-int set_weapon_speed(const struct pwm_dt_spec *weapon_pin,
-                     const struct pwm_dt_spec *unused, uint8_t speed_u);
+int set_bl_motor_speed(const struct pwm_dt_spec *weapon_pin,
+                       const struct pwm_dt_spec *unused, uint8_t speed_u);
 
 /**
  * @brief Callback for motor control threads.

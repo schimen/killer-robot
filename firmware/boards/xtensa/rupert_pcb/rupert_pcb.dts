@@ -24,7 +24,8 @@
 		a2 = &pwm_a2;
 		b1 = &pwm_b1;
 		b2 = &pwm_b2;
-		weapon = &pwm2;
+		pwm1 = &pwm1;
+		pwm2 = &pwm2;
 		hc12 = &uart2;
 		hc12-set = &hc12_set;
 		nfault = &nfault;

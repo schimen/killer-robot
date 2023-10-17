@@ -20,17 +20,11 @@ struct gpio_callback sleep_callback;
 const struct device *motion_sensor = DEVICE_DT_GET(DT_ALIAS(motion_sensor));
 
 struct motor_control motor_a = {
-    .en1 = PWM_DT_SPEC_GET(DT_ALIAS(a1)),
-    .en2 = PWM_DT_SPEC_GET(DT_ALIAS(a2)),
+    .en1 = PWM_DT_SPEC_GET(DT_ALIAS(pwm1)),
 };
 
 struct motor_control motor_b = {
-    .en1 = PWM_DT_SPEC_GET(DT_ALIAS(b1)),
-    .en2 = PWM_DT_SPEC_GET(DT_ALIAS(b2)),
-};
-
-struct motor_control weapon = {
-    .en1 = PWM_DT_SPEC_GET(DT_ALIAS(weapon)),
+    .en1 = PWM_DT_SPEC_GET(DT_ALIAS(pwm2)),
 };
 
 // Create workthread
@@ -66,11 +60,9 @@ static void message_handler(void *p1, void *p2, void *p3) {
     struct command_data command;
     while (true) {
         if (get_command(&command) != 0) {
-            // Did not receive command before timeout, turn motors and weapon
-            // off
-            motor_off(&motor_a);
-            motor_off(&motor_b);
-            weapon_off(&weapon);
+            // Did not receive command before timeout, turn motors off
+            bl_motor_off(&motor_a);
+            bl_motor_off(&motor_b);
             LOG_WRN("Command timed out, turn motor and weapon off");
             continue;
         }
@@ -100,11 +92,6 @@ static void message_handler(void *p1, void *p2, void *p3) {
 
         case right_motor_command:
             set_speed(&motor_b, command.value);
-            send_ack(command, 0);
-            break;
-
-        case weapon_motor_command:
-            set_speed(&weapon, command.value);
             send_ack(command, 0);
             break;
 
@@ -142,9 +129,8 @@ static void sleep_worker_func() {
         // Stop communication
         k_thread_suspend(msg_handler_tid);
         // Turn off motors and weapon
-        motor_off(&motor_a);
-        motor_off(&motor_b);
-        weapon_off(&weapon);
+        bl_motor_off(&motor_a);
+        bl_motor_off(&motor_b);
         LOG_INF("Sleep mode on");
     } else {
         k_thread_resume(msg_handler_tid);
@@ -178,7 +164,8 @@ void main(void) {
                        K_THREAD_STACK_SIZEOF(main_workthread_area), 5, NULL);
 
     // Init motor control
-    motor_init(&motor_a, &motor_b, &weapon);
+    bl_motor_init(&motor_a, 0);
+    bl_motor_init(&motor_b, 1);
 
     // Start bluetooth service
     peripheral_enable();
