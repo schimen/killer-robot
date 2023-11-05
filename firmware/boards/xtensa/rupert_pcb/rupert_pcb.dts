@@ -194,7 +194,7 @@
 };
 
 &spi2 {
-	status = "okay";
+	status = "disabled";
 	compatible = "espressif,esp32-spi";
 	#address-cells = <1>;
 	#size-cells = <0>;
