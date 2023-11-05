@@ -23,12 +23,12 @@ K_THREAD_STACK_ARRAY_DEFINE(stacks, NUM_THREADS, STACK_SIZE);
 // Define brushless and dc motor pwm periods
 static const uint32_t DC_MOTOR_PERIOD = PWM_MSEC(1U);
 static const uint32_t BL_MOTOR_PERIOD = PWM_MSEC(20U);
-#define BL_MOTOR_PULSE_MIN PWM_MSEC(1U)
-#define BL_MOTOR_PULSE_MAX PWM_MSEC(2U)
-static const uint32_t BL_MOTOR_PULSE_RANGE =
-    BL_MOTOR_PULSE_MAX - BL_MOTOR_PULSE_MIN;
-static const uint32_t BL_MOTOR_PULSE_MID =
-    BL_MOTOR_PULSE_MIN + BL_MOTOR_PULSE_RANGE / 2;
+static const uint32_t BL_MOTOR_PULSE_MID = PWM_USEC(1500);
+static const uint32_t BL_MOTOR_PULSE_RANGE = PWM_USEC(500U);
+static const uint32_t BL_MOTOR_PULSE_MIN =
+    BL_MOTOR_PULSE_MID - BL_MOTOR_PULSE_RANGE;
+static const uint32_t BL_MOTOR_PULSE_MAX =
+    BL_MOTOR_PULSE_MID + BL_MOTOR_PULSE_RANGE;
 
 void dc_motor_init(struct motor_control *motor, int motor_index) {
     if (motor_index > NUM_THREADS - 1) {
@@ -125,8 +125,10 @@ int set_bl_motor_speed(const struct pwm_dt_spec *en1,
     int32_t speed = convert_speed(speed_u);
     uint32_t pulse_offset = speed * (BL_MOTOR_PULSE_RANGE / 100);
     uint32_t pulse = BL_MOTOR_PULSE_MID + pulse_offset;
-    if (pulse > BL_MOTOR_PERIOD) {
-        pulse = BL_MOTOR_PERIOD;
+    if (pulse > BL_MOTOR_PULSE_MAX) {
+        pulse = BL_MOTOR_PULSE_MAX;
+    } else if (pulse < BL_MOTOR_PULSE_MIN) {
+        pulse = BL_MOTOR_PULSE_MIN;
     }
     return pwm_set_dt(en1, BL_MOTOR_PERIOD, pulse);
 }
