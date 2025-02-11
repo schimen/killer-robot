@@ -15,6 +15,7 @@ The different projects are:
 - [Robot pcb](./robot-pcb/): Printed circuit board supposed to control the robot. The robot brain runs on this hardware.
 - [Robot control center](./control-center/): Python GUI program that controls the robot via commands.
 - [Transmitter](./firmware/transmitter): Firmware for command transmitter, communicating with the control center via USB and the robot via radio.
+This transmitter is deprecated, all communication with Rupert uses BLE via the "Robot control center".
 
 
 ## Zephyr guide
